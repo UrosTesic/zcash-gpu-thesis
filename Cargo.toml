@@ -1,0 +1,12 @@
+[package]
+name = "zcash-gpu-thesis"
+version = "0.1.0"
+authors = ["AdrianLeverkuhn <uros.tesic@mail.com>"]
+
+[dependencies]
+ocl = "0.19"
+rand = "0.4"
+
+[dependencies.pairing]
+version = "0.14"
+features = ["expose-arith"]
