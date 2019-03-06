@@ -11,3 +11,8 @@ Cargo.lock
 
 /target
 **/*.rs.bk
+
+# These files are the input test vectors, and they need to be downloaded from the polybox
+/librustzcash/bellman/src/131071_dump.txt
+/librustzcash/bellman/src/exp_dump.txt
+/librustzcash/bellman/src/point_exp_pairs.txt
