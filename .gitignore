@@ -16,3 +16,9 @@ Cargo.lock
 /librustzcash/bellman/src/131071_dump.txt
 /librustzcash/bellman/src/exp_dump.txt
 /librustzcash/bellman/src/point_exp_pairs.txt
+build_scripts/aarch64-linux-android/aarch64-test-release
+build_scripts/armv7-linux-androideabi/armv7-test
+build_scripts/armv7-linux-androideabi/armv7-test-debug
+build_scripts/armv7-linux-androideabi/armv7-test-release
+librustzcash/bellman/a.out
+
