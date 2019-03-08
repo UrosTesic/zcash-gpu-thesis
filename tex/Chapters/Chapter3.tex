@@ -2,7 +2,7 @@
 
 \chapter{zCash and zk-SNARKs} % Main chapter title
 
-\label{Chapter2} % Change X to a consecutive number; for referencing this chapter elsewhere, use \ref{ChapterX}
+\label{Chapter3} % Change X to a consecutive number; for referencing this chapter elsewhere, use \ref{ChapterX}
 
 %----------------------------------------------------------------------------------------
 %	SECTION 1
@@ -10,9 +10,21 @@
 
 \section{zCash}
 
-Cryptocurrencies have gained in popularity over the last couple of years. The best example is the Bitcoin bubble which made people gain millions over night, and lose them soon after. However, Bitcoin is of limited use today. It cannot be used as a general currency due to the low throughput and long waiting times for the transaction to be added to the block. Its status as an anonymous currency is also disputed, resulting in 2 different cryptocurrencies being developed to fill that void - Monero and zCash.\\
+Cryptocurrencies have gained in popularity over the last couple of years. The best example is the Bitcoin bubble which made people gain millions over night, and lose them soon after. However, Bitcoin is of limited use today. It cannot be used as a general currency due to the low throughput and long waiting times for the transaction to be added to the block. Its status as an anonymous currency is also disputed, resulting in 2 different cryptocurrencies being developed to fill that void - Monero and zCash (ZEC).\\
 \\
-ZCash defines two types of addresses. Transparent addresses behave the same way as Bitcoin addresses. Data resides in the public blockchain, so it can be tracked the same way as with Bitcoin. However, shielded addresses reveal nothing when they are a part of the transaction. 
+ZCash defines two types of addresses. Transparent addresses behave the same way as Bitcoin addresses. Data resides in the public blockchain, so it can be tracked the same way as with Bitcoin. However, shielded addresses reveal nothing when they are a part of the transaction. This is accomplished by using notes (NOTE) which contain the public key (PK) of the owner, some amount of zCash (M), as well as a unique identifier (N). Every shielded transaction results in a note like this (transaction output). When this note is used in a transaction, it is spent, and its nullifier (NULL(N)) is published. Valid, unspent notes are ones which are in the set of all generated notes, and whose nullifier hasn't been published.\\
+\\
+Keeping all notes in a list would result is abysmal performance, so they are kept in a Merkle tree. Furthermore, instead of keeping notes in a public structure, where everyone can see them, we keep commitments to notes (COMM(NOTE)). This guarantees that the value and owner of note are not public. However, now that we don't know PK of the note's owner, how do we verify the transaction?\\
+\\
+Spending a note in zCash involves computing a zero-knowledge proof $\pi$. It requires the NOTE's spender to prove the following:
+
+\begin{itemize}
+    \item The commitment COMM(NOTE) exists in a Merkle tree with all notes
+    \item That they have the private key SK, corresponding to the note's public key PK
+    \item The NULL(N) is equal to the nullifier provided (T)
+\end{itemize}
+
+If the proof verification passes, the node can check if the note has been spent previously by searching for T in a Merkle tree with published nullifiers. This results in the transaction being accepted and added to the blockchain. Along with this T is added to the set of spent nullifiers.
 
 %-----------------------------------
 %	SUBSECTION 1
