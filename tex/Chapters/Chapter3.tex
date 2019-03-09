@@ -26,24 +26,58 @@ Spending a note in zCash involves computing a zero-knowledge proof $\pi$. It req
 
 If the proof verification passes, the node can check if the note has been spent previously by searching for T in a Merkle tree with published nullifiers. This results in the transaction being accepted and added to the blockchain. Along with this T is added to the set of spent nullifiers.
 
-%-----------------------------------
-%	SUBSECTION 1
-%-----------------------------------
-\subsection{Subsection 1}
-
-Nunc posuere quam at lectus tristique eu ultrices augue venenatis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam erat volutpat. Vivamus sodales tortor eget quam adipiscing in vulputate ante ullamcorper. Sed eros ante, lacinia et sollicitudin et, aliquam sit amet augue. In hac habitasse platea dictumst.
-
-%-----------------------------------
-%	SUBSECTION 2
-%-----------------------------------
-
-\subsection{Subsection 2}
-Morbi rutrum odio eget arcu adipiscing sodales. Aenean et purus a est pulvinar pellentesque. Cras in elit neque, quis varius elit. Phasellus fringilla, nibh eu tempus venenatis, dolor elit posuere quam, quis adipiscing urna leo nec orci. Sed nec nulla auctor odio aliquet consequat. Ut nec nulla in ante ullamcorper aliquam at sed dolor. Phasellus fermentum magna in augue gravida cursus. Cras sed pretium lorem. Pellentesque eget ornare odio. Proin accumsan, massa viverra cursus pharetra, ipsum nisi lobortis velit, a malesuada dolor lorem eu neque.
-
 %----------------------------------------------------------------------------------------
 %	SECTION 2
 %----------------------------------------------------------------------------------------
 
-\section{Main Section 2}
+\section{Zero-Knowledge Proofs}
 
-Sed ullamcorper quam eu nisl interdum at interdum enim egestas. Aliquam placerat justo sed lectus lobortis ut porta nisl porttitor. Vestibulum mi dolor, lacinia molestie gravida at, tempus vitae ligula. Donec eget quam sapien, in viverra eros. Donec pellentesque justo a massa fringilla non vestibulum metus vestibulum. Vestibulum in orci quis felis tempor lacinia. Vivamus ornare ultrices facilisis. Ut hendrerit volutpat vulputate. Morbi condimentum venenatis augue, id porta ipsum vulputate in. Curabitur luctus tempus justo. Vestibulum risus lectus, adipiscing nec condimentum quis, condimentum nec nisl. Aliquam dictum sagittis velit sed iaculis. Morbi tristique augue sit amet nulla pulvinar id facilisis ligula mollis. Nam elit libero, tincidunt ut aliquam at, molestie in quam. Aenean rhoncus vehicula hendrerit.
+In 1985. Goldwasser, Micali and Rackoff published a paper with an interesting twist. Most papers discussed methods of combating a dishonest prover, trying to deceive an honest verifier. Their work took a completely different approach: What information could a verifier obtain from a prover? They defined a new class of languages - IP (Interactive Proof). IP contains language L for which there is an interactive protocol between the prover P and a verifier V, after which P has convinced V with a non-negligible probability that the statement s is in the language L.\\
+\\
+The interactive proof must satisfy the following properties:
+\begin{itemize}
+    \item \textbf{Completeness} If the statement \textit{s} is in \textit{L}, there exists a prover \textit{P} that can convince the poly-time verifier \textit{V} of this, with probability of at least 2/3.
+    $$ s \in L \implies \exists P Pr[out_V \langle V, P \rangle (s) = 1 ] \geq 2/3 $$
+    \item \textbf{Soundness} If the statement \textit{s} isn't in \textit{L}, no prover \textit{P} can convince the poly-time verifier \textit{V} that it is with probability 1/3 or greater.
+    $$ s \notin L \implies \forall P Pr[out_V \langle V, P \rangle (s) = 1 ] < 1/3 $$
+\end{itemize}
+
+The choice of constants 2/3 and 1/3 is arbitrary, because probability amplification can be used until we are satisfied with the probability of error.\\
+\\
+Another important property that a proof may have is to be \textbf{zero-knowledge}. While two previous properties are tied to different provers, zero-knowledge states that all verifiers can learn only that the statement \textit{s} belongs to the language \textit{L}. This statement can be formalized using a simulator and a transcript. \textit{V} can generate the transcript with the same distribution as the messages exchanged during the protocol, without ever communicating with \textit{P}. Hence, \textit{V} learns nothing from \textit{P}, other than $s \in L$.\\
+\\
+Unfortunately, zero-knowledge proofs described are interactive. They cannot be used in blockchain because every verification of the blocks would require all parties to be online and exchange messages with the verifier. Blum, Feldman and Micali introduced \textbf{N}on-\textbf{I}nteractive \textbf{Z}ero-\textbf{K}nowledge proofs (NIZK - pronounced \textit{nee-zeek}). These proofs require a preparation step - establishment of a common reference string (CRS). This is performed once and CRS is later used for proof generation and verification.\\
+\section{zk-SNARKs}
+
+\section{zk-SNARKs}
+
+\subsection{Introduction}
+zk-SNARKs are a cryptographic primitive used for zero-knowledge proofs. Their name stands for \textbf{Z}ero-\textbf{K}nowledge \textbf{S}uccinct \textbf{N}on-Interactive \textbf{Ar}guments of \textbf{K}nowledge. They cannot be considered true proofs, but arguments because they hold only computationally. The main strength lies in succinctness and non-interactivity - zk-SNARK proofs are short and can be verified offline. Furthermore, they can be used to prove any statement that can be represented as a circuit (eg. any finite computation on a modern CPU). This can be useful in a number of contexts, not only for cryptocurrencies. Verifiable cloud execution is a cannonical example. For further information consult % cite Pinocchio, Groth, zCash blog posts, articles by Vitali Buterin
+
+\subsection{Arithmetic Circuit}
+
+The calculation we want to perform starts as a program. To generate a proof for it, we need to convert it into an arithmetic circuit consisting only of four basic operations: addition, subtraction, multiplication and division. Different variables in the programs and intermediate results are represented by different wires in the circuit. Conditional execution can be simulated by performing all branches in parallel, and selecting one of them. Finite loops are unrolled, and function calls are inlined.
+
+\subsection{R1CS Form}
+The next step of generating a proof is making sure that all constraints in the circuit are satisfied (eg. that multiplication gates actually perform multiplication). This is achieved by conversion of the circuit into R1CS form (Rank 1 Constraint System). Every gate is transformed independently. It consists of a vector S, containing values of all wires in the circuit (and value 1). Additionally, R1CS form comprises vectors $A_i$, $B_i$, and $C_i$, such that the following constraint is met:
+
+$$ A_i \cdot S \times B_i \cdot S - C_i \cdot S = 0 $$
+
+The conversion follows a standard procedure for all four basic operations, which is illustrated in FIGURE in the case of addition. Vectors A and B are used for selection and scaling of inputs to the gate, while the vector C scales and selects the output. We transform all gates as described.
+
+\subsection{Quadratic Arithmetic Program}
+Quadratic Arithmetic Program enables us to represent R1CS constraints for all gates at once. First, we enumerate all gates, and construct three polynomials (A(x), B(x), and C(x)) for every variable in the circuit. Polynomial for the j-th variable $A_j(x)$ is formed by interpolating it through the points with coordinates $(i, A_i[j])$. 
+%, where GateIndex is the index assigned to gate when they were enumerated, $A_{GateIndex}$ is the corresponding A vector, and $A_{GateIndex} [i]$ is the value of the i-th constant in the vector
+Polynomials can be interpolated using well-known algorithm such as Langrangian interpolation. Extracting previous values from the polynomial is possible by evaluating them at the corresponding variable index.\\
+\\
+Then, we form a new polynomial A(x) by arranging all $A_j$ vectors in a new vector, based on the index j, and taking a scalar product with S. We form polynomials B(x) and C(x) the same way.
+
+$$ A(x) = \sum_{j = 1}^{number\,of\,gates} S_j \cdot A_j(x) $$
+
+Considering that polynomials A(x), B(x) and C(x) are sums of interpolated polynomials multiplied by the corresponding element in S, we can evaluate them at variable indices and conclude that the following expression holds.
+
+$$\forall t:\: [t \in \{1,\,2,\,3, \dots ,\,number\,of\,gates\} \implies A(t) \cdot B(t) - C(t) = 0]$$
+\\
+This implies that the polynomial $A(x) \cdot B(x) - C(x)$ is divisible by the polynomial $T(x) = (t-1)(t-2)...(t-number\,of\,gates)$, or more formally:
+
+$$ A(x) \cdot B(x) - C(x) = H(x) \cdot T(x) $$
