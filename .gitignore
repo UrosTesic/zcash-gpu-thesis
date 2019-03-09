@@ -22,23 +22,23 @@ build_scripts/armv7-linux-androideabi/armv7-test-debug
 build_scripts/armv7-linux-androideabi/armv7-test-release
 librustzcash/bellman/a.out
 ## Core latex/pdflatex auxiliary files:
-*.aux
-*.lof
-*.log
-*.lot
-*.fls
-*.out
-*.toc
-*.fmt
-*.fot
-*.cb
-*.cb2
-.*.lb
+**/*.aux
+**/*.lof
+**/*.log
+**/*.lot
+**/*.fls
+**/*.out
+**/*.toc
+**/*.fmt
+**/*.fot
+**/*.cb
+**/*.cb2
+**/.*.lb
 
 ## Intermediate documents:
-*.dvi
-*.xdv
-*-converted-to.*
+**/*.dvi
+**/*.xdv
+**/*-converted-to.*
 # these rules might exclude image files for figures etc.
 # *.ps
 # *.eps
@@ -48,18 +48,18 @@ librustzcash/bellman/a.out
 .pdf
 
 ## Bibliography auxiliary files (bibtex/biblatex/biber):
-*.bbl
-*.bcf
-*.blg
-*-blx.aux
-*-blx.bib
-*.run.xml
+**/*.bbl
+**/*.bcf
+**/*.blg
+**/*-blx.aux
+**/*-blx.bib
+**/*.run.xml
 
 ## Build tool auxiliary files:
-*.fdb_latexmk
-*.synctex
-*.synctex(busy)
-*.synctex.gz
-*.synctex.gz(busy)
-*.pdfsync
+**/*.fdb_latexmk
+**/*.synctex
+**/*.synctex(busy)
+**/*.synctex.gz
+**/*.synctex.gz(busy)
+**/*.pdfsync
 
