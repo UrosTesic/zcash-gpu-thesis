@@ -44,15 +44,14 @@ The interactive proof must satisfy the following properties:
 
 The choice of constants 2/3 and 1/3 is arbitrary, because probability amplification can be used until we are satisfied with the probability of error.\\
 \\
-Another important property that a proof may have is to be \textbf{zero-knowledge}. While two previous properties are tied to different provers, zero-knowledge states that all verifiers can learn only that the statement \textit{s} belongs to the language \textit{L}. This statement can be formalized using a simulator and a transcript. \textit{V} can generate the transcript with the same distribution as the messages exchanged during the protocol, without ever communicating with \textit{P}. Hence, \textit{V} learns nothing from \textit{P}, other than $s \in L$.\\
+Another important property that a proof may have is \textbf{zero-knowledge}. While two previous properties are tied to different provers, zero-knowledge states that all verifiers can learn only that the statement \textit{s} belongs to the language \textit{L}. This statement can be formalized using a simulator and a transcript. \textit{V} can generate the transcript with the same distribution as the messages exchanged during the protocol, without ever communicating with \textit{P}. Hence, \textit{V} learns nothing from \textit{P}, other than $s \in L$.\\
 \\
-Unfortunately, zero-knowledge proofs described are interactive. They cannot be used in blockchain because every verification of the blocks would require all parties to be online and exchange messages with the verifier. Blum, Feldman and Micali introduced \textbf{N}on-\textbf{I}nteractive \textbf{Z}ero-\textbf{K}nowledge proofs (NIZK - pronounced \textit{nee-zeek}). These proofs require a preparation step - establishment of a common reference string (CRS). This is performed once and CRS is later used for proof generation and verification.\\
-\section{zk-SNARKs}
+Unfortunately, zero-knowledge proofs described are interactive. They cannot be used in blockchain because every verification of the blocks would require all parties to be online and exchange messages with the verifier. Blum, Feldman and Micali introduced \textbf{N}on-\textbf{I}nteractive \textbf{Z}ero-\textbf{K}nowledge proofs (NIZK - pronounced \textit{nee-zeek}). These proofs require a preparation step - establishment of a common reference string (CRS). This is performed once and CRS is later used for proof generation and verification.
 
 \section{zk-SNARKs}
 
 \subsection{Introduction}
-zk-SNARKs are a cryptographic primitive used for zero-knowledge proofs. Their name stands for \textbf{Z}ero-\textbf{K}nowledge \textbf{S}uccinct \textbf{N}on-Interactive \textbf{Ar}guments of \textbf{K}nowledge. They cannot be considered true proofs, but arguments because they hold only computationally. The main strength lies in succinctness and non-interactivity - zk-SNARK proofs are short and can be verified offline. Furthermore, they can be used to prove any statement that can be represented as a circuit (eg. any finite computation on a modern CPU). This can be useful in a number of contexts, not only for cryptocurrencies. Verifiable cloud execution is a cannonical example. For further information consult % cite Pinocchio, Groth, zCash blog posts, articles by Vitali Buterin
+zk-SNARKs are a cryptographic primitive used for zero-knowledge proofs. Their name stands for \textbf{Z}ero-\textbf{K}nowledge \textbf{S}uccinct \textbf{N}on-Interactive \textbf{Ar}guments of \textbf{K}nowledge. They cannot be considered true proofs, but arguments because they hold only computationally. The main strength lies in succinctness and non-interactivity - zk-SNARK proofs are short and can be verified offline. Furthermore, they can be used to prove any statement that can be represented as a circuit (eg. any finite computation on a modern CPU). This can be useful in a number of contexts, not only for cryptocurrencies. (eg. verifieable cloud execution). zk-SNARKs aren't interactive so they require a preparation stage to generate a CRS. Most of the material in this section is based on a series of articles by Vitali Buterin, with motivation and reasoning between the steps made clearer. For further information consult original papers, as well as zCash blog and protocol. % cite Pinocchio, Groth, zCash blog posts, articles by Vitali Buterin
 
 \subsection{Arithmetic Circuit}
 
@@ -78,6 +77,49 @@ Considering that polynomials A(x), B(x) and C(x) are sums of interpolated polyno
 
 $$\forall t:\: [t \in \{1,\,2,\,3, \dots ,\,number\,of\,gates\} \implies A(t) \cdot B(t) - C(t) = 0]$$
 \\
-This implies that the polynomial $A(x) \cdot B(x) - C(x)$ is divisible by the polynomial $T(x) = (t-1)(t-2)...(t-number\,of\,gates)$, or more formally:
+This implies that the polynomial $A(x) \cdot B(x) - C(x)$ is divisible by the polynomial $T(x) = (x-1)(x-2)...(x-number\,of\,gates)$, or more formally:
 
 $$ A(x) \cdot B(x) - C(x) = H(x) \cdot T(x) $$
+
+\subsection{Pinocchio Protocol}
+
+This section presumes basic (operational) knowledge of elliptic curves and pairings, which can be found in APPENDIX.\\
+\\
+The simplest way to verify that all checks that the circuit, or QAP, performs are satisfied, would be to reveal all values. However, that would leak sensitive information such as private key, available funds, transferred ZEC... Providing just a polynomial divisible by T(x) would be meaningless, because it could have been forged. The primitive we need should provide us with a way to check that the polynomial was constructed in a specific way, while letting us verify that it is indeed divisible by T(x). Pinocchio protocol uses  pairings (bilinear maps) to achieve that goal.\\
+\\
+Pairings can be used to check whether two pairs of elliptic curve points (A and B, C and D) have the same quotients:
+
+$$ B / A \stackrel{?}{=} D / C $$
+This is verified by computing two pairings:
+$$ e(A, D) \stackrel{?}{=} e(B, C) $$
+In case of $A = [k]B; C = [k]D$ we have:
+$$ e([k]B, D) \stackrel{?}{=} e(B, [k]D)$$
+We use property of the pairing to move quotients from the arguments to results.
+$$ [k]e(B, D) = [k]e(B, D) $$
+If the pairs have the same quotients, both pairings will be equal.\\
+\\
+Using this idea, we can make sure that a polynomial hasn't been forged. We evaluate all polynomials at a secret coordinate t, so we obtain $A_j(t), B_j(t), C_j(t)$ for all gates in the circuit. By also adding these values multiplied by secret coefficients $k_a, k_b and k_c$, we are able to prevent the prover from using arbitrary polynomials. Considering that pairings operate on elliptic curve points, we will use these values to multiply the generator point G of a pairing-friendly curve. Accordingly, we add the following values to the trusted setup:
+
+$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [A_j(t)]G, [A_j(t) \cdot k_A]G $$
+$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [B_j(t)]G, [B_j(t) \cdot k_B]G $$ 
+$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [C_j(t)]G, [C_j(t) \cdot k_C]G $$ 
+
+The prover then needs to provide the following points to prove that they computed polynomials $A(x), B(x), C(x)$ correctly:
+
+$$P_A = [A(t)]G, P_A' = [A(t) \cdot k_A]G$$
+$$P_B = [B(t)]G, P_B' = [B(t) \cdot k_B]G$$
+$$P_C = [C(t)]G, P_C' = [C(t) \cdot k_C]G$$
+
+Considering that polynomials $A(x), B(x), C(x)$ are linear combinations of polynomials $A_j(x), B_j(x), C_j(x)$, respectively, they can be computed required points can be computed from the points in the trusted setup and the witness \textit{s} (coefficients of the linear combinations).\\
+\\
+The prover must also convince the verifier that they used the same coefficients for all polynomials. This is achieved by extending the trusted setup with the following points:
+
+$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [(A_j(t) + B_j(t) + C_j(t)) \cdot k_abc]G $$
+
+The prover then provides the point:
+
+$$ P_{ABC}' = [(A(t) + B(t) + C(t)) \cdot k_abc]G $$
+
+We can then use pairings to verify that $P_A + P_B + P_C$ and $P_{ABC}'$ actually differ $k_ABC$ times.
+
+Finally, they need to prove that the polynomial $A(x) \cdot B(x) - C(x)$ is really divisible by $T(x)$. This is achieved by using the polynomial $H(x)$ to show that multiplying it by $T(x)$ gives us $A(x) \cdot B(x) - C(x)$$.
