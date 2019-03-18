@@ -242,24 +242,24 @@ inline int fqrepr_cmp(const FqRepr* a, const FqRepr* b) {
         else if (a->data[4] > b->data[4]) return 1;
         else {
 
-        if (a->data[3] < b->data[3]) return -1;
-        else if (a->data[3] > b->data[3]) return 1;
-        else {
-
-            if (a->data[2] < b->data[2]) return -1;
-            else if (a->data[2] > b->data[2]) return 1;
+            if (a->data[3] < b->data[3]) return -1;
+            else if (a->data[3] > b->data[3]) return 1;
             else {
 
-                if (a->data[1] < b->data[1]) return -1;
-                else if (a->data[1] > b->data[1]) return 1;
+                if (a->data[2] < b->data[2]) return -1;
+                else if (a->data[2] > b->data[2]) return 1;
                 else {
 
-                    if (a->data[0] < b->data[0]) return -1;
-                    else if (a->data[0] > b->data[0]) return 1;
-                    else return 0;
+                    if (a->data[1] < b->data[1]) return -1;
+                    else if (a->data[1] > b->data[1]) return 1;
+                    else {
+
+                        if (a->data[0] < b->data[0]) return -1;
+                        else if (a->data[0] > b->data[0]) return 1;
+                        else return 0;
+                    }
                 }
             }
-        }
         }
     }
 }
@@ -947,7 +947,7 @@ inline void projective_add_assign(Projective* self, const Projective* other) {
         fq_mul_assign(&s2, &z1z1);
 
         if (fq_eq(&u1, &u2) && fq_eq(&s1, &s2)) {
-            projective_double(self);
+            projective_double(self);    
         } else {
             Fq h;
             h = u2;
@@ -2776,6 +2776,72 @@ __kernel void affine_mulexp_smart(__global const Affine* points, __global const 
     }
 }
 
+__kernel void affine_mulexp_smart_no_red(__global const Affine* points, __global const FrRepr* exps,
+                                  uint len, uint chunk_size, __global Projective* out) {
+    Projective buckets[15] = {
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO
+    };
+    const ulong mask = 0xf;
+    //__local Projective chunk_values[64];
+
+    Affine current_point;
+    FrRepr current_exp;
+
+    const uint idx = get_global_id(0);
+    const uint idx_local = get_local_id(0);
+    const uint idx_group = get_group_id(0);
+
+    const uint start_idx = idx_group * chunk_size;
+    uint end_idx = (idx_group + 1) * chunk_size;
+
+
+    const uint part = idx_local / 16;
+    const uint shift = (idx_local % 16) * 4;
+
+    if (end_idx > len) end_idx = len;
+
+    if (start_idx >= len) return;
+
+    for (uint i = start_idx; i < end_idx; i++) {
+        current_point = points[i];
+        current_exp = exps[i];
+        uint exp_idx = (current_exp.data[part] >> shift) & mask;
+
+        if (exp_idx > 0) {
+            projective_add_assign_mixed(&buckets[exp_idx - 1], &current_point);
+        }
+    }
+    
+    Projective sum = PROJECTIVE_ZERO;
+    Projective partial_sum = PROJECTIVE_ZERO;
+
+    for (int i = 15; i > 0; i--) {
+        projective_add_assign(&partial_sum, &buckets[i-1]);
+        projective_add_assign(&sum, &partial_sum);
+    }
+
+    //chunk_values[idx_local] = sum;
+
+    //projective_reduce_local_smart(chunk_values, &sum);
+
+    out[idx] = sum;
+}
+
+
 __kernel void affine_mulexp_smart_lower_half(__global const Affine* points, __global const FrRepr* exps,
                                   uint len, uint chunk_size, __global Projective* out) {
     Projective buckets[15] = {
@@ -3189,7 +3255,6 @@ __kernel void pippenger_spread(__global const Affine* points, __global const FrR
     FrRepr current_exp;
     local Affine affcache;
     local FrRepr expcache;
-    const uint CHUNK_SIZE = 256;
 
     const uint idx_local = get_local_id(0);
     const uint idx_group = get_group_id(0);

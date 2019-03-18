@@ -226,7 +226,7 @@ impl<G: CurveProjective> Group<G::Engine> for Point<G> {
         self.0.sub_assign(&other.0);
     }
 }
-
+#[derive(Debug)]
 pub struct Scalar<E: Engine>(pub E::Fr);
 
 impl<E: Engine> PartialEq for Scalar<E> {
