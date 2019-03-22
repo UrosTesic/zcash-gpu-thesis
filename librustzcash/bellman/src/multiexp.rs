@@ -488,29 +488,29 @@ fn test_cpu_multiexp_vanilla() {
 }
 
 pub fn run_tests() {
-    test_gpu_multiexp_pippenger_spread();
+    //test_gpu_multiexp_pippenger_spread();
     //test_gpu_multiexp_pippenger_step();
     //test_gpu_reduce_cstyle().unwrap();
     //test_gpu_multiexp_simple_cstyle().unwrap();
     // test_gpu_multiexp_smart();
-    /*test_gpu_multiexp_pippenger_spread();
-    println!("Vanilla test");
-    test_cpu_multiexp_vanilla();
+    // test_gpu_multiexp_pippenger_spread();
+    // println!("Vanilla test");
+    // test_cpu_multiexp_vanilla();
 
-    println!("131071 dump:");
-    test_cpu_multiexp_dump();
+    // println!("131071 dump:");
+    // test_cpu_multiexp_dump();
 
-    println!("131071 dump, lower three quarters:");
-    test_cpu_multiexp_lower_three_quarters();
+    // println!("131071 dump, lower three quarters:");
+    // test_cpu_multiexp_lower_three_quarters();
 
-    println!("131071 dump, lower half:");
-    test_cpu_multiexp_lower_half();
+    // println!("131071 dump, lower half:");
+    // test_cpu_multiexp_lower_half();
 
-    println!("131071 dump, 20 split");
-    test_cpu_multiexp_pregen();*/
+    // println!("131071 dump, 20 split");
+    // test_cpu_multiexp_pregen();
 
-    println!("Simple multiexp GPU - entire exponent");
-    test_gpu_multiexp_simple();
+    // println!("Simple multiexp GPU - entire exponent");
+    // test_gpu_multiexp_simple();
 
     /*println!("Simple multiexp GPU - 1/2 exponent");
     test_gpu_multiexp_simple_lower_half();
@@ -518,10 +518,10 @@ pub fn run_tests() {
     println!("Simple multiexp GPU - 1/4 exponent");
     test_gpu_multiexp_simple_lower_quarter();*/
 
-    println!("Smart multiexp GPU - entire exponent");
-    test_gpu_multiexp_smart();
+    // println!("Smart multiexp GPU - entire exponent");
+    // test_gpu_multiexp_smart();
 
-    println!("Smart multiexp GPU - entire exponent no reduction");
+    println!("Smart multiexp GPU - entire exponent no local reduction");
     test_gpu_multiexp_smart_no_red();
 
     /*println!("Smart multiexp GPU - 1/2 exponent");
@@ -2527,14 +2527,14 @@ fn test_gpu_multiexp_smart_no_red() {
             
             
 
-            /*let group_size = 128;
-            length = ((num_points + chunk - 1) / chunk) as u32;
-            let mut dims = ((length + group_size - 1) / group_size) * group_size;
+            let group_size = 64;
+            length = (((num_points + chunk - 1) / chunk) * group_size_exp) as u32;
+            let mut dims = length;
 
-            while length > 1 {
+            while length > 64 {
                 let kernel = Kernel::builder()
                         .program(&program)
-                        .name("projective_reduce_step_global")
+                        .name("projective_pippinger_reduction")
                         .global_work_size(dims)
                         .arg(&buffer_results)
                         .arg(&length)
@@ -2548,26 +2548,33 @@ fn test_gpu_multiexp_smart_no_red() {
                         .local_work_size(group_size)
                         .enq().unwrap();
                 }
-                // queue.finish();
-                length = (length + 1) / 2;
-                dims = (dims + 1) / 2;
-                dims = ((dims + group_size - 1) / group_size) * group_size;
-            }*/
+                
+                length = ((length / group_size_exp as u32) + 1) / 2 * (group_size_exp as u32);
+                dims = length;
+            }
 
-            let mut result = vec![0u64; 3*FQ_WIDTH];
+            let mut result = vec![0u64; 3*FQ_WIDTH*64];
+            let mut result_arr = [0u64; 3*FQ_WIDTH*64];
 
             buffer_results.cmd().read(&mut result).enq().unwrap();
-            let duration = now.elapsed();
-            print!("{}.{:06}, ", duration.as_secs(), duration.subsec_micros());
 
-            let mut result_arr = [0u64; 3*FQ_WIDTH];
             for i in 0..result.len() {
                 result_arr[i] = result[i];
             }
+            let mut partial_sum = G1Projective::zero();
+            let mut sum = G1Projective::zero();
+            
             unsafe {
-                let p: G1Projective = transmute(result_arr);
-                results.push(p.into_affine());
+                let mut result_cast: [G1Projective; 64] = transmute(result_arr);
+                for i in (0..63).rev() {
+                    partial_sum.add_assign(&result_cast[i]);
+                    sum.add_assign(&partial_sum.clone());
+                }
+                results.push(sum.into_affine());
             }
+            
+            let duration = now.elapsed();
+            print!("{}.{:06}, ", duration.as_secs(), duration.subsec_micros());
         }
         println!();
         

@@ -2841,6 +2841,23 @@ __kernel void affine_mulexp_smart_no_red(__global const Affine* points, __global
     out[idx] = sum;
 }
 
+__kernel void projective_pippinger_reduction(__global Projective* points, const uint length) {
+    const uint BLOCK_SIZE = 64;
+    uint num_blocks = length / BLOCK_SIZE;
+
+    uint blocks_to_add = num_blocks / 2;
+    uint block_offset = (num_blocks + 1) / 2 * BLOCK_SIZE;
+
+    uint idx = get_global_id(0);
+
+    if (idx / BLOCK_SIZE < blocks_to_add) {
+        Projective first = points[idx];
+        Projective second = points[idx + block_offset];
+        projective_add_assign(&first, &second);
+        points[idx] = first;
+    }
+}
+
 
 __kernel void affine_mulexp_smart_lower_half(__global const Affine* points, __global const FrRepr* exps,
                                   uint len, uint chunk_size, __global Projective* out) {
