@@ -2588,6 +2588,7 @@ inline void projective_reduce_local_smart(__local Projective* redBuf, Projective
     }
 }
 
+#ifdef EXCLUDE
 // Reduction kernel that uses local reduction. Supposed to be called several times.
 __kernel void projective_reduce_step(__global Projective* points, uint len,
                                      __local Projective* redBuf) {
@@ -2775,7 +2776,7 @@ __kernel void affine_mulexp_smart(__global const Affine* points, __global const 
         out[idx_group] = sum;
     }
 }
-
+#endif
 __kernel void affine_mulexp_smart_no_red(__global const Affine* points, __global const FrRepr* exps,
                                   uint len, uint chunk_size, __global Projective* out) {
     Projective buckets[15] = {
@@ -2858,7 +2859,7 @@ __kernel void projective_pippinger_reduction(__global Projective* points, const 
     }
 }
 
-
+#ifdef EXCLUDE
 __kernel void affine_mulexp_smart_lower_half(__global const Affine* points, __global const FrRepr* exps,
                                   uint len, uint chunk_size, __global Projective* out) {
     Projective buckets[15] = {
@@ -3306,3 +3307,4 @@ __kernel void pippenger_spread(__global const Affine* points, __global const FrR
     
     out[local_size*idx_group + idx_local] = sum;
 }
+#endif
