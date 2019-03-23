@@ -51,11 +51,11 @@ Unfortunately, zero-knowledge proofs described are interactive. They cannot be u
 \section{zk-SNARKs}
 
 \subsection{Introduction}
-zk-SNARKs are a cryptographic primitive used for zero-knowledge proofs. Their name stands for \textbf{Z}ero-\textbf{K}nowledge \textbf{S}uccinct \textbf{N}on-Interactive \textbf{Ar}guments of \textbf{K}nowledge. They cannot be considered true proofs, but arguments because they hold only computationally. The main strength lies in succinctness and non-interactivity - zk-SNARK proofs are short and can be verified offline. Furthermore, they can be used to prove any statement that can be represented as a circuit (eg. any finite computation on a modern CPU). This can be useful in a number of contexts, not only for cryptocurrencies. (eg. verifieable cloud execution). zk-SNARKs aren't interactive so they require a preparation stage to generate a CRS. Most of the material in this section is based on a series of articles by Vitali Buterin, with motivation and reasoning between the steps made clearer. For further information consult original papers, as well as zCash blog and protocol. % cite Pinocchio, Groth, zCash blog posts, articles by Vitali Buterin
+zk-SNARKs are a cryptographic primitive used for zero-knowledge proofs. Their name stands for \textbf{Z}ero-\textbf{K}nowledge \textbf{S}uccinct \textbf{N}on-Interactive \textbf{Ar}guments of \textbf{K}nowledge. They cannot be considered true proofs, but arguments because they hold only computationally. The main strength lies in succinctness and non-interactivity - zk-SNARK proofs are short and can be verified offline. Furthermore, they can be used to prove any statement that can be represented as a circuit (eg. any finite computation on a modern CPU). This can be useful in a number of contexts, not only for cryptocurrencies. (eg. verifieable cloud execution). zk-SNARKs aren't interactive so they require a preparation stage to generate a CRS. Most of the material in this section is based on a series of articles by Vitali Buterin. The differences from Buterin's articles, as well as from the original papers are discussed at the end of this section.  For further information consult original papers, as well as zCash blog and protocol. % cite Pinocchio, Groth, zCash blog posts, articles by Vitali Buterin
 
 \subsection{Arithmetic Circuit}
 
-The calculation we want to perform starts as a program. To generate a proof for it, we need to convert it into an arithmetic circuit consisting only of four basic operations: addition, subtraction, multiplication and division. Different variables in the programs and intermediate results are represented by different wires in the circuit. Conditional execution can be simulated by performing all branches in parallel, and selecting one of them. Finite loops are unrolled, and function calls are inlined.
+The calculation we want to perform starts as a program. To generate a proof for it, we need to convert it into an arithmetic circuit over the field $\mathbb{F}$. The gates in the circuit consist of two field operations and their inverses (eg. addition, multiplication, subtraction and division). Different variables in the program and intermediate results are represented by different wires in the circuit. Conditional execution can be simulated by performing all branches in parallel, and selecting one of them. Finite loops are unrolled, and function calls are inlined.
 
 \subsection{R1CS Form}
 The next step of generating a proof is making sure that all constraints in the circuit are satisfied (eg. that multiplication gates actually perform multiplication). This is achieved by conversion of the circuit into R1CS form (Rank 1 Constraint System). Every gate is transformed independently. It consists of a vector S, containing values of all wires in the circuit (and value 1). Additionally, R1CS form comprises vectors $A_i$, $B_i$, and $C_i$, such that the following constraint is met:
@@ -85,7 +85,7 @@ $$ A(x) \cdot B(x) - C(x) = H(x) \cdot T(x) $$
 
 This section presumes basic (operational) knowledge of elliptic curves and pairings, which can be found in APPENDIX.\\
 \\
-The simplest way to verify that all checks that the circuit, or QAP, performs are satisfied, would be to reveal all values. However, that would leak sensitive information such as private key, available funds, transferred ZEC... Providing just a polynomial divisible by T(x) would be meaningless, because it could have been forged. The primitive we need should provide us with a way to check that the polynomial was constructed in a specific way, while letting us verify that it is indeed divisible by T(x). Pinocchio protocol uses  pairings (bilinear maps) to achieve that goal.\\
+The simplest way to verify that all checks that the circuit, or QAP, performs are satisfied, would be to reveal all values. However, that would leak sensitive information such as private key, available funds, transferred ZEC\dots Providing just a polynomial divisible by T(x) would be meaningless, because it could have been forged. The primitive we need should provide us with a way to check that the polynomial was constructed in a specific way, while letting us verify that it is indeed divisible by T(x). Pinocchio protocol uses  pairings (bilinear maps) to achieve that goal. In the text, we use type III pairing: $e: \mathbb{G}_1 \times \mathbb{G}_2 \to \mathbb{G}_T$. Pairing is denoted by a two-argument function $e(P_{G_1}, P_{G_2})$. $G_1, G_2$ and $G_T$ represent generators of groups $\mathbb{G}_1$, $\mathbb{G}_2$ and $\mathbb{G}_T$, respectively. Group operations in groups $\mathbb{G}_1$ and $\mathbb{G}_2$ are represented in the additive notation (+ for the operation, and $[n]P$ for scalar multiplication), while group $\mathbb{G}_T$ uses multiplicative notation ($\cdot$ for the operation, and $P^n$ for scalar exponentiation).\\
 \\
 Pairings can be used to check whether two pairs of elliptic curve points (A and B, C and D) have the same quotients:
 
@@ -95,31 +95,72 @@ $$ e(A, D) \stackrel{?}{=} e(B, C) $$
 In case of $A = [k]B; C = [k]D$ we have:
 $$ e([k]B, D) \stackrel{?}{=} e(B, [k]D)$$
 We use property of the pairing to move the constant outside the pairings:
-$$ [k]e(B, D) = [k]e(B, D) $$
+$$ e(B, D)^k = e(B, D)^k $$
 If the pairs have the same quotients, both pairings will be equal.\\
 \\
-Using this idea, we can make sure that a polynomial hasn't been forged. We evaluate all polynomials at a secret coordinate t, so we obtain $A_j(t), B_j(t), C_j(t)$ for all gates in the circuit. By also adding these values multiplied by secret coefficients $k_a, k_b and k_c$, we are able to prevent the prover from using arbitrary polynomials. Considering that pairings operate on elliptic curve points, we will use these values to multiply the generator point G of a pairing-friendly curve. Accordingly, we add the following values to the trusted setup:
+Using this idea, we can make sure that a polynomial hasn't been forged. We evaluate all polynomials at a secret coordinate t, so we obtain $A_j(t), B_j(t), C_j(t)$ for all gates in the circuit. By also adding these values multiplied by secret coefficients $k_a, k_b$ and $k_c$, we are able to prevent the prover from using arbitrary polynomials. Considering that pairings operate on elliptic curve points, we will use these values to multiply the generator point $G_1$ of a pairing-friendly curve. Values $\rho_A, \rho_B, \beta, \gamma$ are also considered secret, and are used to aid subsequent pairing checks. Accordingly, we add the following values to the trusted setup:
 
-$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [A_j(t)]G, [A_j(t) \cdot k_A]G $$
-$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [B_j(t)]G, [B_j(t) \cdot k_B]G $$ 
-$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [C_j(t)]G, [C_j(t) \cdot k_C]G $$ 
+$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [\rho_A A_j(t)]G, [k_A \rho_A A_j(t)]G_1 $$
+$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [\rho_B B_j(t)]G, [k_B \rho_B B_j(t)]G_1 $$ 
+$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [\rho_C C_j(t)]G, [k_C \rho_C C_j(t)]G_1 $$ 
 
 The prover then needs to provide the following points to prove that they computed polynomials $A(x), B(x), C(x)$ correctly:
 
-$$P_A = [A(t)]G, P_A' = [A(t) \cdot k_A]G$$
-$$P_B = [B(t)]G, P_B' = [B(t) \cdot k_B]G$$
-$$P_C = [C(t)]G, P_C' = [C(t) \cdot k_C]G$$
+$$\pi_A = [\rho_A A(t)]G_1, \pi_A' = [k_A \rho_A A(t)]G_1$$
+$$\pi_B = [\rho_B B(t)]G_2, \pi_B' = [k_B \rho_B B(t)]G_1$$
+$$\pi_C = [\rho_A \rho_B C(t)]G_1, \pi_C' = [k_C \rho_A \rho_B C(t)]G_1$$
+
+The check is performed by computing:
+
+$$ e(\pi_x, [k_x]G_2) \stackrel{?}{=} e(\pi_x', G_2) $$
 
 Considering that polynomials $A(x), B(x), C(x)$ are linear combinations of polynomials $A_j(x), B_j(x), C_j(x)$, respectively, they can be computed required points can be computed from the points in the trusted setup and the witness \textit{s} (coefficients of the linear combinations).\\
 \\
 The prover must also convince the verifier that they used the same coefficients for all polynomials. This is achieved by extending the trusted setup with the following points:
 
-$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [(A_j(t) + B_j(t) + C_j(t)) \cdot k_abc]G $$
+$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [\beta(\rho_A A_j(t) + \rho_B B_j(t) + \rho_A \rho_B C_j(t))]G_1 $$
 
 The prover then provides the point:
 
-$$ P_{ABC}' = [(A(t) + B(t) + C(t)) \cdot k_abc]G $$
+$$ \pi_{K} = [\beta(\rho_A A(t) + \rho_B B(t) + \rho_A \rho_B C(t))]G_1 $$
 
-We can then use pairings to verify that $P_A + P_B + P_C$ and $P_{ABC}'$ actually differ $k_ABC$ times.
+Pairing check is performed by the verifier:
 
-Finally, they need to prove that the polynomial $A(x) \cdot B(x) - C(x)$ is really divisible by $T(x)$. This is achieved by using the polynomial $H(x)$ to show that multiplying it by $T(x)$ gives us $A(x) \cdot B(x) - C(x)$$.
+$$ e(\pi_K, [\gamma]G_2) \stackrel{?}{=} e(\pi_A + \pi_C, [\gamma\beta]G_2) \cdot e([\gamma\beta]G_1, \pi_B) $$
+
+Finally, they need to prove that the polynomial $A(x) \cdot B(x) - C(x)$ is really divisible by $T(x)$. This is achieved by using the polynomial $H(x)$ to show that multiplying it by $T(x)$ gives us $A(x) \cdot B(x) - C(x)$. If the prover provides $\pi_H = [H(t)]G_1$, we can do this using pairings:
+
+$$ e(\pi_a, \pi_b) \stackrel{?}{=} e(\pi_c, G_2) \cdot e(P_H, [\rho_A \rho_B T(t)]G_2) $$
+
+We will now discuss the simplifications made to the proof. The following structure works for proofs without any input wirtes. Adding input wires to the circuit is straightforward. It involves adding several more terms to the CRS, and adding these terms to $\pi_A$ during the linearity and divisibility pairing check. The reader can check the full version of Pinocchio zk-SNARKs in PAPER, or just the review in BEN-SASSON PAPER.\\
+\\
+There is another important place where we deviate from Buterin's articles - pairing used. We use asymmetric pairing, instead of symmetric pairing used by Buterin. Asymmetric pairings are more efficient than symmetric pairings, and make discussion of Groth's results in the subsequent section more understandable.\\
+\\
+The final remark has to do with the choice of groups $\mathbb{G}_1$ and $\mathbb{G}_2$ for the points provided by the prover. All points beside $\pi_B$ are elements of $\mathbb{G}_1$. Elements of $\mathbb{G}_1$ are smaller than the elements of $\mathbb{G}_2$, so Pinocchio protocol takes advantage of this to reduce the size of the proof. $\pi_B$ has to be in $\mathbb{G}_2$ due to the pairing check where we calculate $e(\pi_A, \pi_B)$. This brings us to the proof consisting of 7 $\mathbb{G}_1$ and 1 $\mathbb{G}_2$ element.
+
+\section{Sapling Update}
+
+\subsection{Introduction}
+zCash is undergoing continuous development. The most substantial update to date is called Sapling. Its goal was to overhaul the cryptographic part of zCash. The major changes are a new curve, new commitment scheme, a new proving system, as well as writing these components in Rust. These changes are meant to address the slow speed of shielded transactions, and lead to their wider adoption.
+
+\subsection{New Curve: BLS12-381}
+
+The old curve BN254 saw its security level reduced after a new algorithm was discovered. Increasing the security parameters for this curve would reduce the performance of FFT (for polynomial division) and multiexponentiation steps of proof generation. A new curve was selected - BLS12-381. The embedding degrees of this curve is 12. Other parameters of this curve are its group order $r \approx 2^255$ and the base field characteristic $q \approx 2^381$.
+
+\subsection{New Commitment Scheme: Pederson Commitments and JubJub}
+
+zCash zk-SNARK circuit needs to compute and verify commitments to notes. SHA256 compression function was used as the commitment scheme. Unfortunately, this also bloated the circuit quite a bit. Moving to BLS12-381, whose group order is $r \approx 2^255$ was used to introduce a new commitment scheme: Pederson commitments over a custom Edwards curve Ed255-JubJub. The field underlaying JubJub can fit in the scalar field of BLS12-381 and be calculated in the circuit quite efficiently.
+
+\subsection{New Proving System}
+
+While Pinocchio is secure, its biggest problem is the proof size. Instead of using 7 $\mathbb{G}_1$ elements, and one $\mathbb{G}_2$ element, Jens Groth improved upon the previous work to use only 2 $\mathbb{G}_1$ elements and a $\mathbb{G}_2$ element. He also proved that at least one element needs to be in each group for linear circuit checks to be secure.\\
+\\
+This achieved by the prover providing:
+
+$$ \pi_A = [\underbrace{\alpha + A(t) + r\delta}_\text{A}]G_1 $$
+$$ \pi_B = [\underbrace{\beta + B(t) + s\delta}_\text{B}]G_2 $$
+$$ \pi_C = [\frac{\beta A(t) + \alpha B(t) + C(t) + H(t)T(t)}{\delta} + As + Br - rs\delta]G_1 $$
+
+The verifier needs to check:
+
+$$ e(\pi_A, \pi_B) \stackrel{?}{=} e(\alpha G_1, \beta G_2) \cdot e(\pi_C, \delta G_2) $$
