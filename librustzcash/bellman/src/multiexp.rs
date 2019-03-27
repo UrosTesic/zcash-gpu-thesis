@@ -491,7 +491,7 @@ pub fn run_tests() {
     //test_gpu_multiexp_pippenger_spread();
     //test_gpu_multiexp_pippenger_step();
     //test_gpu_reduce_cstyle().unwrap();
-    //test_gpu_multiexp_simple_cstyle().unwrap();
+    test_gpu_multiexp_simple_cstyle().unwrap();
     // test_gpu_multiexp_smart();
     // test_gpu_multiexp_pippenger_spread();
     // println!("Vanilla test");
@@ -509,8 +509,8 @@ pub fn run_tests() {
     // println!("131071 dump, 20 split");
     // test_cpu_multiexp_pregen();
 
-    println!("Simple multiexp GPU - entire exponent");
-    test_gpu_multiexp_simple();
+    // println!("Simple multiexp GPU - entire exponent");
+    // test_gpu_multiexp_simple();
 
     /*println!("Simple multiexp GPU - 1/2 exponent");
     test_gpu_multiexp_simple_lower_half();
@@ -1249,8 +1249,8 @@ fn test_gpu_multiexp_simple_cstyle() -> ocl::core::Result<()> {
 
     let iterations = 3;
 
-    let test_set = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 132000, 200000, 500000, 1000000];
-    let group_set = [8, 16, 32, 64, 128, 256];
+    let test_set = [131071];
+    let group_set = [64, 128, 256];
     let mut points = Vec::new();
     let mut exponents = Vec::new();
 
