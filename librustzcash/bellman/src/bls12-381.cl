@@ -2608,6 +2608,8 @@ __kernel void projective_reduce_step(__global Projective* points, uint len,
     }
 }
 
+#endif
+
 // Reduction kernel that uses only global data. Supposed to be called several times.
 // Faster than local reduction
 __kernel void projective_reduce_step_global(__global Projective* points, uint len) {
@@ -2631,6 +2633,7 @@ __kernel void projective_reduce_step_global(__global Projective* points, uint le
     points[idx] = point1;
 }
 
+#ifdef EXCLUDE
 // Simple multiexponentiation with local reduction
 __kernel void affine_mulexp_binary(__global const Affine* bases, __global const FrRepr* exps, uint len,
                                    __local Projective* redBuf, __global Projective* out){
