@@ -509,8 +509,8 @@ pub fn run_tests() {
     // println!("131071 dump, 20 split");
     // test_cpu_multiexp_pregen();
 
-    // println!("Simple multiexp GPU - entire exponent");
-    // test_gpu_multiexp_simple();
+    println!("Simple multiexp GPU - entire exponent");
+    test_gpu_multiexp_simple();
 
     /*println!("Simple multiexp GPU - 1/2 exponent");
     test_gpu_multiexp_simple_lower_half();
@@ -521,8 +521,8 @@ pub fn run_tests() {
     // println!("Smart multiexp GPU - entire exponent");
     // test_gpu_multiexp_smart();
 
-    println!("Smart multiexp GPU - entire exponent no local reduction");
-    test_gpu_multiexp_smart_no_red();
+    //println!("Smart multiexp GPU - entire exponent no local reduction");
+    //test_gpu_multiexp_smart_no_red();
 
     /*println!("Smart multiexp GPU - 1/2 exponent");
     test_gpu_multiexp_smart_lower_half();
