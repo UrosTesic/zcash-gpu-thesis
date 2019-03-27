@@ -1269,7 +1269,7 @@ fn test_gpu_multiexp_simple_cstyle() -> ocl::core::Result<()> {
         &[device_id], None, None)?;
     let src_cstring = CString::new(opencl_string)?;
     let program = core::create_program_with_source(&context, &[src_cstring])?;
-    core::build_program(&program, Some(&[device_id]), &CString::new("")?,
+    core::build_program(&program, Some(&[device_id]), &CString::new("-save-temps")?,
         None, None)?;
     let queue = core::create_command_queue(&context, &device_id, None)?;
 
