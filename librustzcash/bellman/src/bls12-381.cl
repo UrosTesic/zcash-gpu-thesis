@@ -2802,6 +2802,9 @@ __kernel void affine_mulexp_smart_no_red(__global const Affine* points, __global
     Affine current_point;
     FrRepr current_exp;
 
+    local Affine group_point;
+    local FrRepr group_exp;
+
     const uint idx = get_global_id(0);
     const uint idx_local = get_local_id(0);
     const uint idx_group = get_group_id(0);
@@ -2818,8 +2821,15 @@ __kernel void affine_mulexp_smart_no_red(__global const Affine* points, __global
     if (start_idx >= len) return;
 
     for (uint i = start_idx; i < end_idx; i++) {
-        current_point = points[i];
-        current_exp = exps[i];
+        if (idx_local == 0){ 
+            group_point = points[i];
+            group_exp = exps[i];
+        } 
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        current_point = group_point;
+        current_exp = group_exp;
+
         uint exp_idx = (current_exp.data[part] >> shift) & mask;
 
         if (exp_idx > 0) {
