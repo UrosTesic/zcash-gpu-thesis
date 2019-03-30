@@ -63,3 +63,16 @@ librustzcash/bellman/a.out
 **/*.synctex.gz(busy)
 **/*.pdfsync
 
+tex/Chapters/Chapter1.aux
+tex/main.aux
+tex/main.blg
+tex/main.fdb_latexmk
+tex/main.fls
+tex/main.lof
+tex/main.log
+tex/main.lot
+tex/main.out
+tex/main.pdf
+tex/main.toc
+tex/main.synctex.gz
+tex/Appendices/AppendixA.aux

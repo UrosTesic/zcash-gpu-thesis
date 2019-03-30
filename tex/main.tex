@@ -51,6 +51,12 @@ headsepline, % Uncomment to get a line under the header
 
 \usepackage{mathtools} % We need to use mathematical symbols
 \usepackage{amsfonts} % We need to use mathbb
+\usepackage{algorithm}
+\usepackage[]{algpseudocode}
+
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
 
 %----------------------------------------------------------------------------------------
 %	MARGIN SETTINGS
@@ -264,7 +270,7 @@ $\omega$ & angular frequency & \si{\radian} \\
 \include{Chapters/Chapter2} 
 \include{Chapters/Chapter3}
 \include{Chapters/Chapter4} 
-%\include{Chapters/Chapter5} 
+\include{Chapters/Chapter5} 
 
 %----------------------------------------------------------------------------------------
 %	THESIS CONTENT - APPENDICES

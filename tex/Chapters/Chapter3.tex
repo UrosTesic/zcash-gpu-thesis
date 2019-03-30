@@ -164,3 +164,9 @@ $$ \pi_C = [\frac{\beta A(t) + \alpha B(t) + C(t) + H(t)T(t)}{\delta} + As + Br 
 The verifier needs to check:
 
 $$ e(\pi_A, \pi_B) \stackrel{?}{=} e(\alpha G_1, \beta G_2) \cdot e(\pi_C, \delta G_2) $$
+
+Groth's zk-SNARK is also a bit simplified and doesn't include inputs to the circuit. Constants $\alpha, \beta, \delta, r, s, t$ are random secrets generated during the generation of CRS. Polynomials A(x), B(x), C(x), H(x), and T(x) are defined in the same way as in the Pinocchio protocol.
+
+\subsection{Rust Implementation}
+
+Rust was imagined as a memory-safe and thread-safe low-level programming language. Switching to a new curve required the code for cryptography to be rewritten. This was done in Rust, to improve the security of zCash. Furthermore, new CRS was needed for Groth's proving system. The program for the ceremony was also written in Rust, and took advantage of secure multi-party computation. 87 people contributed in the first (circuit-agnostic) phase, and over 90 took part in the second phase.

@@ -491,14 +491,14 @@ pub fn run_tests() {
     //test_gpu_multiexp_pippenger_spread();
     //test_gpu_multiexp_pippenger_step();
     //test_gpu_reduce_cstyle().unwrap();
-    test_gpu_multiexp_simple_cstyle().unwrap();
+    //test_gpu_multiexp_simple_cstyle().unwrap();
     // test_gpu_multiexp_smart();
     // test_gpu_multiexp_pippenger_spread();
     // println!("Vanilla test");
     // test_cpu_multiexp_vanilla();
 
-    // println!("131071 dump:");
-    // test_cpu_multiexp_dump();
+    println!("131071 dump:");
+    test_cpu_multiexp_dump();
 
     // println!("131071 dump, lower three quarters:");
     // test_cpu_multiexp_lower_three_quarters();

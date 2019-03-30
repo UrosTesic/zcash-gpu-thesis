@@ -1,0 +1,85 @@
+\chapter{Implementation Details} % Main chapter title
+
+\label{Chapter5} % Change X to a consecutive number; for referencing this chapter elsewhere, use \ref{ChapterX}
+
+%----------------------------------------------------------------------------------------
+%	SECTION 1
+%----------------------------------------------------------------------------------------
+
+\section{Implementation of Elliptic Curve Operations}
+
+
+Rust implementation of BLS12-381 from the pairing crate used by zCash was ported to OpenCL C. This step was straight-forward and made easier by the fixed size of primitive data types in both Rust and OpenCL C. Constants were used whereever it was possible, to aid compiler optimization. Almost all functions were inlined to remove the function call overhead, and open new opportunities for optimization. Due to the difficulty in debugging GPU and cryptographic code, almost every function is unit tested, and compared to the Rust implementation. No reduction in the number of variables was attempted like in THE PAPER ABOUT THE FAST MULTIEXPONENTIATION. Modern compiles rename every variable during compilation and perform multiple optimization passes.\
+The host code is written in Rust to interface with the librustzcash Rust library, and uses ocl crate. Higher level interface is used for testing on Intel, NVIDIA and AMD GPUs. However, cross-compilation for Android some tests had to be implemented using the low-level API.\\
+\\
+Finite fields $\mathbb{F}_r$ (255-bit modulus) and $\mathbb{F}_q$ (381-bit modulus) have been ported to OpenCL, as well as an elliptic curve BLS12-381 group $\mathbb{G}_1$ over $\mathbb{F}_q$.
+
+\section{Multiexponentiation Algorithms}
+
+\subsection{Pippenger's Multiexponentiation Algorithm}
+The most time-consuming part of proof generation is the multiplication of the elliptic curve points by the coefficients of the witness to create $\pi_A$, $\pi_B$ and $\pi_C$. In the multiplicative notation, this multiplication becomes exponentiation, so the algorithms solving this problem can also be called exponentiation algorithms.\\
+\\
+The actual problem we are trying to solve is:\\
+\\
+Given $x_1$, $x_2$,\dots, $x_n$ $\in \mathbb{G}$ and $y_1$, $y_2$,\dots, $y_n \in \mathbb{Z}$, compute $x_1^{y_1} x_2^{y_2} \dots x_n^{y_n}$.\\
+\\
+While square-and-multiply and windowed square-and-multiply are asymptotically optimal for a single exponentiation, it is possible to compute the multiexponentiation by grouping some terms, and exponentiating them together.\\
+\\
+\textbf{Example:} $2^3 5^3$ can be computed as $(2 \cdot 5)^3$.\\
+\\
+Pippinger's multiexponentiation algorithm can be used to calculate the required product. The algorithm can be used to calculate several multiproducts at once ($x_1^{y_1} x_2^{y_2} \dots x_n^{y_n}$, $x_1^{z_1} x_2^{z_2} \dots x_n^{z_n}$, $x_1^{p_1} x_2^{p_2} \dots x_n^{p_n}$ and Pippinger has proven that the algorithm is asymptotically optimal. However, for zk-SNARKs we require only one multiexponentiation, so the actual implementation is slightly simplified. For a good background on Pippinger's algorithm, as well as some alternatives (such as Yao's and Bos-Coster algorithm) please consult THE PAPER. In the rest of the section, we will discuss the simplified version of the Pippinger used in the bellman Rust crate.
+\begin{algorithm}
+\caption{Simplified Pippinger}\label{multiexp}
+\begin{algorithmic}[1]
+\Function{MultiexpInner}{\textit{Bases}[1 \dots n], \textit{Exponents}[1 \dots n], \textit{Shift}, \textit{Width}}
+
+    \If{$Shift + Width < EXP\_BITS$}
+        \State $Higher \gets \textbf{new thread}$ \Call{MultiexpInner}{\textit{Bases}, \textit{Exponents}, \textit{Shift}+\textit{Width}, \textit{Width}}
+    \EndIf
+    \State $Buckets \gets \textbf{new} \; Base[1\dots2^{Width}-1]$
+    \State $Mask \gets 2^{Width}-1$
+    \For{$i \gets 1 \dots n$}
+        \State $ExpPart \gets (Exponents[i] \gg Shift) \; \&  \;Mask$
+        \If{$ExpPart \neq 0$}
+            \State $Buckets[ExpPart] \gets Buckets[ExpPart] + Bases[i]$
+        \EndIf
+    \EndFor
+    
+    \State $PartialSum \gets 0$
+    \State $Sum \gets 0$
+    
+    \For{$i \gets 2^{Width}-1 \dots 1$}
+        \State $PartialSum \gets PartialSum + Buckets[i]$
+        \State $Sum \gets Sum + PartialSum$
+    \EndFor
+    
+    \If{$Shift + Width < EXP\_BITS$}
+        \State \textbf{wait} $Higher$
+        \State $Sum \gets Sum + 2^{Width} \cdot Higher$ 
+    \EndIf
+    
+    \State \textbf{return} $Sum$
+\EndFunction
+
+\Function{Multiexp}{\textit{Bases}[1 \dots n], \textit{Exponents}[1 \dots n]}
+    \If{n < 32}
+        \State $Width \gets 3$
+    \Else
+        \State $Width \gets ln(n)$
+    \EndIf
+
+    \State \textbf{return} \Call{MultiexpInner}{$Bases$, $Exponents$, $0$, $Width$}
+    
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+The algorithm segments the exponents in chunks of several bits. Every thread then iterates through the assigned bits, and based on them, adds bases to corresponding buckets. Buckets are then added in an efficient way:
+
+$$ a + 2b + 3c = c + (c + b) + (c + b + a) $$
+
+Afterwards, we wait for higher threads to finish, and combine results.\\
+\\
+As we can see this algorithm is quite paralellizable. We just need to change the width of the bit chunk to distribute work over more threads. Another possibility is to split the bases and exponents, and do the calculation separately. However, we notice some limitations as well. There is sequential work that needs to be done when we are combining results. We cannot split the work on more processors than there are bits in the exponent, without splitting the bases.
+\\
+\subsection{Implemented Algorithms}
