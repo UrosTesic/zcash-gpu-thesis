@@ -1698,7 +1698,7 @@ fn test_gpu_double() {
     let program = Program::builder()
                         .devices(device)
                         .src(opencl_string)
-                        .cmplr_opts("-save-temps")
+                        .cmplr_opt("-save-temps")
                         .build(&context).unwrap();
 
     println!("Kernel built!");
