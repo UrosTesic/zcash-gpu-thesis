@@ -232,6 +232,54 @@ fn multiexp_inner<Q, D, G, S>(
     }
 }
 
+fn multiexp_simple<G>(
+    pool: &Worker,
+    bases: Arc<Vec<G>>,
+    exponents: Arc<Vec<<<G::Engine as Engine>::Fr as PrimeField>::Repr>>,
+    mut skip: u32,
+    chunk: u32
+) -> Box<Future<Item=<G as CurveAffine>::Projective, Error=SynthesisError>>
+    where G: CurveAffine
+{
+    // Perform this region of the multiexp
+    let this = {
+        let bases = bases.clone();
+        let exponents = exponents.clone();
+        
+
+        pool.compute(move || {
+            // Accumulate the result
+            let mut acc = G::Projective::zero();
+
+            // Build a source for the bases
+            let mut end = 0;
+            if skip + chunk > (bases.len() as u32){
+                end = bases.len() as u32;
+            } else {
+                end = skip + chunk;
+            }
+            for i in skip..end {
+                acc.add_assign(&bases[i as usize].mul(exponents[i as usize]));
+            }
+
+            Ok(acc)
+        })
+    };
+
+    if skip + chunk > (bases.len() as u32){
+                Box::new(this)
+            } else {
+                Box::new(
+                this.join(multiexp_simple(pool, bases, exponents, skip+chunk, chunk))
+                    .map(move |(this, mut other)| {
+
+                        other.add_assign(&this);
+                        other
+                    })
+                )
+            }    
+}
+
 /// Perform multi-exponentiation. The caller is responsible for ensuring the
 /// query size is the same as the number of exponents.
 pub fn multiexp<Q, D, G, S>(
@@ -497,8 +545,10 @@ pub fn run_tests() {
     // println!("Vanilla test");
     // test_cpu_multiexp_vanilla();
 
-    println!("131071 dump:");
-    test_cpu_multiexp_dump();
+    // test_cpu_simple_dump();
+
+    // println!("131071 dump:");
+    // test_cpu_multiexp_dump();
 
     // println!("131071 dump, lower three quarters:");
     // test_cpu_multiexp_lower_three_quarters();
@@ -520,6 +570,11 @@ pub fn run_tests() {
 
     // println!("Smart multiexp GPU - entire exponent");
     // test_gpu_multiexp_smart();
+
+    test_gpu_double();
+
+    //println!("Smart multiexp GPU - entire exponent no local reduction large");
+    //test_gpu_multiexp_smart_no_red_large();
 
     //println!("Smart multiexp GPU - entire exponent no local reduction");
     //test_gpu_multiexp_smart_no_red();
@@ -703,6 +758,49 @@ fn test_cpu_multiexp_dump() {
                 (g, 0),
                 FullDensity,
                 v
+            ).wait().unwrap();
+            let duration = now.elapsed();
+            println!("{}.{:06}, ", duration.as_secs(), duration.subsec_micros());
+            //println!("{:?}", fast);
+            // results.push(fast);
+        //}
+        println!();
+
+        /*for i in 1..results.len() {
+            assert_eq!(results[i], results[i-1]);
+        }*/
+    }
+}
+
+#[inline(always)]
+fn test_cpu_simple_dump() {
+    use std::io::Write;
+    use std::io::stdout;
+    let test_set =  [131071];
+    
+    for num_points in test_set.iter() {
+
+        let mut points = Vec::new();
+        let mut exponents = Vec::new();
+
+        //let mut results = Vec::new();
+        load_data(&"./src/131071_dump.txt", *num_points, &mut points, &mut exponents);
+
+        //println!("Points: {}, ", *num_points);
+
+        //for _ in 0..1 {
+            let g = Arc::new(points.clone());
+            let v = Arc::new(exponents.clone());
+
+            let pool = Worker::new();
+            println!("HERE");
+            let now = Instant::now();
+            let fast = multiexp_simple(
+                &pool,
+                g,
+                v,
+                0,
+                5000
             ).wait().unwrap();
             let duration = now.elapsed();
             println!("{}.{:06}, ", duration.as_secs(), duration.subsec_micros());
@@ -1556,6 +1654,140 @@ fn test_gpu_multiexp_simple() {
             assert_eq!(results[i-1], results[i]);
         }
         results.clear();
+    }
+}
+
+#[inline(always)]
+fn test_gpu_double() {
+    use std::fs::read_to_string;
+
+    use ocl::{flags, Platform, Device, Context, Queue, Program,
+    Buffer, Kernel};
+
+    use rand::{Rand, SeedableRng, XorShiftRng};
+    use std::ops::IndexMut;
+    use std::mem;
+
+    const FQ_WIDTH: usize = 6;
+    const FR_WIDTH: usize = 4;
+
+    let iterations = 5;
+
+    let test_set = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 132000, 200000, 500000, 1000000, 2000000, 4000000];
+
+    let mut points = Vec::new();
+    let mut exponents = Vec::new();
+
+    //let mut results = Vec::new();
+
+    let mut points_gpu = Vec::new();
+    let mut exps_gpu = Vec::new();
+
+    let opencl_string = read_to_string("./src/bls12-381.cl").unwrap();
+
+    let platform = Platform::default();
+    println!("Devices: {}", Device::list_all(platform).unwrap().len());
+    let device = Device::first(platform).unwrap();
+
+    let context = Context::builder()
+                        .platform(platform)
+                        .devices(device.clone())
+                        .build().unwrap();
+
+    println!("Preparing to build!");
+    let program = Program::builder()
+                        .devices(device)
+                        .src(opencl_string)
+                        .build(&context).unwrap();
+
+    println!("Kernel built!");
+    let queue = Queue::new(&context, device, None).unwrap();
+    
+    for &num_points in test_set.iter() {
+        let buffer_points = Buffer::<u64>::builder()
+                                    .queue(queue.clone())
+                                    .flags(flags::MEM_READ_WRITE)
+                                    .len(num_points*(3*FQ_WIDTH))
+                                    .build().unwrap();
+
+        let buffer_exponents = Buffer::<u64>::builder()
+                                    .queue(queue.clone())
+                                    .flags(flags::MEM_READ_WRITE)
+                                    .len(num_points*FR_WIDTH)
+                                    .build().unwrap();
+
+        let buffer_results = Buffer::<u64>::builder()
+                                    .queue(queue.clone())
+                                    .flags(flags::MEM_READ_WRITE)
+                                    .len(num_points*FQ_WIDTH*3)
+                                    .build().unwrap();
+
+        points.clear();
+        exponents.clear();
+        points_gpu.clear();
+        exps_gpu.clear();
+        load_data(&"./src/point_exp_pairs.txt", num_points, &mut points, &mut exponents);
+        for i in 0..num_points {
+            unsafe {
+                let point: ([u64; 3*FQ_WIDTH]) = transmute(points[i].into_projective());
+
+
+                for &num in point.iter() {
+                    points_gpu.push(num);
+                }
+
+
+                let exp: [u64; FR_WIDTH] = transmute(exponents[i]);
+
+                for &e in exp.iter() {
+                    exps_gpu.push(e);
+                }
+            }
+        }
+
+        let group_size = 128;
+        let group_size_exp = 32;
+        println!("Points: {}, ", num_points);
+        for _ in 0..iterations {
+            let now = Instant::now();
+
+            buffer_points.cmd().write(&points_gpu).enq().unwrap();
+            //buffer_exponents.cmd().write(&exps_gpu).enq().unwrap();
+
+            let mut length = num_points as u32;
+            let mut dims = ((num_points + group_size_exp - 1) / group_size_exp) * group_size_exp;
+
+            let kernel = Kernel::builder()
+                        .program(&program)
+                        .name("double_kernel_test")
+                        .global_work_size(dims)
+                        .arg(&buffer_points)
+                        .arg(&length)
+                        .arg(&buffer_results)
+                        .build().unwrap();
+
+            unsafe {
+                kernel.cmd()
+                    .queue(&queue)
+                    .global_work_offset(kernel.default_global_work_offset())
+                    .global_work_size(dims)
+                    .local_work_size(group_size_exp)
+                    .enq().unwrap();
+            }
+            
+            let mut result = vec![0u64; 3*FQ_WIDTH];
+
+            buffer_points.cmd().read(&mut result).enq().unwrap();
+            queue.finish().unwrap();
+            let duration = now.elapsed();
+            println!("{}.{:06}, ", duration.as_secs(), duration.subsec_micros());
+
+            let mut result_arr = [0u64; 3*FQ_WIDTH];
+
+        }
+        println!();
+    
+        //results.clear();
     }
 }
 
@@ -2552,6 +2784,200 @@ fn test_gpu_multiexp_smart_no_red() {
                 length = ((length / group_size_exp as u32) + 1) / 2 * (group_size_exp as u32);
                 dims = length;
             }
+
+            let mut result = vec![0u64; 3*FQ_WIDTH*64];
+            let mut result_arr = [0u64; 3*FQ_WIDTH*64];
+
+            buffer_results.cmd().read(&mut result).enq().unwrap();
+
+            for i in 0..result.len() {
+                result_arr[i] = result[i];
+            }
+            let mut partial_sum = G1Projective::zero();
+            let mut sum = G1Projective::zero();
+            
+            unsafe {
+                let mut result_cast: [G1Projective; 64] = transmute(result_arr);
+                for i in (0..63).rev() {
+                    partial_sum.add_assign(&result_cast[i]);
+                    sum.add_assign(&partial_sum.clone());
+                }
+                results.push(sum.into_affine());
+            }
+            
+            let duration = now.elapsed();
+            print!("{}.{:06}, ", duration.as_secs(), duration.subsec_micros());
+        }
+        println!();
+        
+        
+    }
+
+    /*for i in 1..results.len() {
+            assert_eq!(results[i-1], results[i]);
+        }*/
+}
+
+
+
+#[inline(always)]
+fn test_gpu_multiexp_smart_no_red_large() {
+    use std::fs::read_to_string;
+
+    use ocl::{flags, Platform, Device, Context, Queue, Program,
+    Buffer, Kernel};
+
+    use rand::{Rand, SeedableRng, XorShiftRng};
+    use std::ops::IndexMut;
+    use std::mem;
+
+    const FQ_WIDTH: usize = 6;
+    const FR_WIDTH: usize = 4;
+
+    let iterations = 2;
+
+    let chunk_size = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000, 6000, 7000];
+
+    let num_points = 131071;
+    let mut points = Vec::new();
+    let mut exponents = Vec::new();
+    let mut results = Vec::new();
+
+
+    let mut points_gpu = Vec::new();
+    let mut exps_gpu = Vec::new();
+
+    let opencl_string = read_to_string("./src/bls12-381.cl").unwrap();
+
+    let platform = Platform::default();
+    let device = Device::first(platform).unwrap();
+
+    let context = Context::builder()
+                        .platform(platform)
+                        .devices(device.clone())
+                        .build().unwrap();
+
+    let program = Program::builder()
+                        .devices(device)
+                        .src(opencl_string)
+                        .build(&context).unwrap();
+
+    let queue = Queue::new(&context, device, None).unwrap();
+    
+    
+    let buffer_points = Buffer::<u64>::builder()
+                                .queue(queue.clone())
+                                .flags(flags::MEM_READ_WRITE)
+                                .len(num_points*(2*FQ_WIDTH+1))
+                                .build().unwrap();
+
+    let buffer_exponents = Buffer::<u64>::builder()
+                                .queue(queue.clone())
+                                .flags(flags::MEM_READ_WRITE)
+                                .len(num_points*FR_WIDTH)
+                                .build().unwrap();
+
+    
+
+    points.clear();
+    exponents.clear();
+    points_gpu.clear();
+    exps_gpu.clear();
+    println!("LD");
+    load_data(&"./src/point_exp_pairs.txt", num_points, &mut points, &mut exponents);
+    for i in 0..num_points {
+        unsafe {
+            let point: (Fq, Fq, bool) = transmute(points[i]);
+
+            let point_0: [u64; FQ_WIDTH] = transmute(point.0);
+            let point_1: [u64; FQ_WIDTH] = transmute(point.1);
+
+            for &num in point_0.iter() {
+                points_gpu.push(num);
+            }
+
+            for &num in point_1.iter() {
+                points_gpu.push(num);
+            }
+
+            points_gpu.push(point.2 as u64);
+
+            let exp: [u64; FR_WIDTH] = transmute(exponents[i]);
+
+            for &e in exp.iter() {
+                exps_gpu.push(e);
+            }
+        }
+    }
+    println!("DL");
+
+    let group_size_exp = 32;
+
+    for &chunk in chunk_size.iter() {
+        let buffer_results = Buffer::<u64>::builder()
+                                    .queue(queue.clone())
+                                    .flags(flags::MEM_READ_WRITE)
+                                    .len((num_points+chunk-1)/chunk*FQ_WIDTH*3*group_size_exp)
+                                    .build().unwrap();
+
+        print!("Chunk: {}, ", chunk);
+        for _ in 0..iterations {
+            let now = Instant::now();
+
+            buffer_points.cmd().write(&points_gpu).enq().unwrap();
+            buffer_exponents.cmd().write(&exps_gpu).enq().unwrap();
+
+            let mut length = num_points as u32;
+            let mut dims = ((num_points + chunk - 1) / chunk) * group_size_exp;
+            let chunk_gpu = chunk as u32;
+            let kernel = Kernel::builder()
+                        .program(&program)
+                        .name("affine_mulexp_smart_no_red_large")
+                        .global_work_size(dims)
+                        .arg(&buffer_points)
+                        .arg(&buffer_exponents)
+                        .arg(&length)
+                        .arg(&chunk_gpu)
+                        .arg(&buffer_results)
+                        
+                        .build().unwrap();
+
+            unsafe {
+                kernel.cmd()
+                    .queue(&queue)
+                    .global_work_offset(kernel.default_global_work_offset())
+                    .global_work_size(dims)
+                    .local_work_size(group_size_exp)
+                    .enq().unwrap();
+            }
+            
+            
+
+            let group_size = 64;
+            length = (((num_points + chunk - 1) / chunk) * group_size_exp) as u32;
+            let mut dims = length;
+
+            /*while length > 64 {
+                let kernel = Kernel::builder()
+                        .program(&program)
+                        .name("projective_pippinger_reduction")
+                        .global_work_size(dims)
+                        .arg(&buffer_results)
+                        .arg(&length)
+                        .build().unwrap();
+
+                unsafe {
+                    kernel.cmd()
+                        .queue(&queue)
+                        .global_work_offset(kernel.default_global_work_offset())
+                        .global_work_size(dims)
+                        .local_work_size(group_size)
+                        .enq().unwrap();
+                }
+                
+                length = ((length / group_size_exp as u32) + 1) / 2 * (group_size_exp as u32);
+                dims = length;
+            }*/
 
             let mut result = vec![0u64; 3*FQ_WIDTH*64];
             let mut result_arr = [0u64; 3*FQ_WIDTH*64];

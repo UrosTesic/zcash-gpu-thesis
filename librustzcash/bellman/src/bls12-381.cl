@@ -1,19 +1,26 @@
 // Implementation of primitives found in pairing/lib.rs
 
-
+//#define EXCLUDE
 // The wrapper to split a 64 bit integer into two 32 bit numbers (passed as arguments)
 //
 inline void split_ulong(const ulong src, ulong* high, ulong* low) {
     *high = src >> 32;
     *low = src & 0xFFFFFFFF;
 }
-
+/*
+#define SPLIT_ULONG(SRC, HIGH, LOW) {\
+    HIGH = SRC >> 32;\
+    LOW = SRC & 0xFFFFFFFF;\
+}
+*/
 // The wrapper to combine two 32 bit integers into a 64 bit one
 //
 inline ulong combine_ulong(const ulong high, const ulong low) {
     return high << 32 | low;
 }
-
+/*
+#define COMBINE_ULONG(HIGH, LOW) ((HIGH << 32) | LOW)
+*/
 // Calculate a - b - borrow, returning the difference, and modifying borrow
 // passed as the argument
 //
@@ -30,7 +37,24 @@ inline ulong sbb(const ulong a, const ulong b, ulong* borrow) {
     *borrow = (bor == 0);
     return combine_ulong(r1, r0);
 }
-
+/*
+#define SBB(RESULT, A, B, BORROW) {\
+    ulong sbb_a_high, sbb_a_low;\
+    ulong sbb_b_high, sbb_b_low;\
+    ulong sbb_bor, sbb_r0, sbb_r1;\
+    ulong sbb_temp1, sbb_temp2;\
+\
+    SPLIT_ULONG(A, sbb_a_high, sbb_a_low);\
+    SPLIT_ULONG(B, sbb_b_high, sbb_b_low);\
+    temp1 = (1ul << 32) + sbb_a_low - sbb_b_low - BORROW;\
+    SPLIT_ULONG(sbb_temp1, sbb_bor, sbb_r0);\
+    temp2 = (1ul << 32) + sbb_a_high - sbb_b_high - (sbb_bor == 0);\
+    SPLIT_ULONG(sbb_temp2, sbb_bor, sbb_r1);\
+\
+    BORROW = (sbb_bor == 0);\
+    RESULT = COMBINE_ULONG(sbb_r1, sbb_r0);\
+}
+*/
 // Calculate a + b + carry, returning the sum, and modifying the varry value
 //
 inline ulong adc(const ulong a, const ulong b, ulong* carry) {
@@ -51,7 +75,11 @@ inline ulong adc(const ulong a, const ulong b, ulong* carry) {
 
     return combine_ulong(r1, r0);
 }
+/*
+#define ADC(RESULT, A, B, CARRY) {\
 
+}
+*/
 // Calculate a + (b * c) + carry, returning the least significant bytes
 // and setting the carry to the most significant bytes
 //
@@ -233,8 +261,27 @@ inline bool fqrepr_is_zero(const FqRepr* self) {
 }
 
 inline int fqrepr_cmp(const FqRepr* a, const FqRepr* b) {
-    
-    if (a->data[5] < b->data[5]) return -1;
+    int result = 0;
+
+    result += (a->data[5] < b->data[5]) ? -32 : 0;
+    result += (a->data[5] > b->data[5]) ?  32 : 0;
+
+    result += (a->data[4] < b->data[4]) ? -16 : 0;
+    result += (a->data[4] > b->data[4]) ?  16 : 0;
+
+    result += (a->data[3] < b->data[3]) ?  -8 : 0;
+    result += (a->data[3] > b->data[3]) ?   8 : 0;
+
+    result += (a->data[2] < b->data[2]) ?  -4 : 0;
+    result += (a->data[2] > b->data[2]) ?   4 : 0;
+
+    result += (a->data[1] < b->data[1]) ?  -2 : 0;
+    result += (a->data[1] > b->data[1]) ?   2 : 0;
+
+    result += (a->data[0] < b->data[0]) ?  -1 : 0;
+    result += (a->data[0] > b->data[0]) ?   1 : 0;
+
+    /*if (a->data[5] < b->data[5]) return -1;
     else if (a->data[5] > b->data[5]) return 1;
     else {
 
@@ -261,7 +308,9 @@ inline int fqrepr_cmp(const FqRepr* a, const FqRepr* b) {
                 }
             }
         }
-    }
+    }*/
+
+    return result;
 }
 
 inline bool fqrepr_eq(const FqRepr* a, const FqRepr* b) {
@@ -269,7 +318,7 @@ inline bool fqrepr_eq(const FqRepr* a, const FqRepr* b) {
 }
 
 inline bool fqrepr_lt(const FqRepr* a, const FqRepr* b) {
-    return fqrepr_cmp(a,b) == -1;
+    return fqrepr_cmp(a,b) < 0;
 }
 
 inline void fqrepr_sub_noborrow(FqRepr* self, const FqRepr* other) {
@@ -2608,7 +2657,7 @@ __kernel void projective_reduce_step(__global Projective* points, uint len,
     }
 }
 
-#endif
+
 
 // Reduction kernel that uses only global data. Supposed to be called several times.
 // Faster than local reduction
@@ -2631,6 +2680,18 @@ __kernel void projective_reduce_step_global(__global Projective* points, uint le
     projective_add_assign(&point1, &point2);
 
     points[idx] = point1;
+}
+
+#endif
+
+__kernel void double_kernel_test(__global const Projective* bases, uint len, __global Projective* out){
+    uint idx = get_global_id(0);
+
+    Projective point = bases[idx];
+
+    projective_double(&point);
+
+    out[idx] = point;
 }
 
 #ifdef EXCLUDE
@@ -2657,6 +2718,7 @@ __kernel void affine_mulexp_binary(__global const Affine* bases, __global const 
         out[idx/get_local_size(0)] = point;
     }
 }
+
 
 __kernel void affine_mulexp_binary_lower_half(__global const Affine* bases, __global const FrRepr* exps, uint len,
                                    __local Projective* redBuf, __global Projective* out){
@@ -2844,6 +2906,322 @@ __kernel void affine_mulexp_smart_no_red(__global const Affine* points, __global
     Projective partial_sum = PROJECTIVE_ZERO;
 
     for (int i = 15; i > 0; i--) {
+        projective_add_assign(&partial_sum, &buckets[i-1]);
+        projective_add_assign(&sum, &partial_sum);
+    }
+
+    //chunk_values[idx_local] = sum;
+
+    //projective_reduce_local_smart(chunk_values, &sum);
+
+    out[idx] = sum;
+}
+
+__kernel void affine_mulexp_smart_no_red_large(__global const Affine* points, __global const FrRepr* exps,
+                                  uint len, uint chunk_size, __global Projective* out) {
+    Projective buckets[255] = {
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO,
+        PROJECTIVE_ZERO
+    };
+    const ulong mask = 0xff;
+
+    //__local Projective chunk_values[64];
+
+    Affine current_point;
+    FrRepr current_exp;
+
+    local Affine group_point;
+    local FrRepr group_exp;
+
+    const uint idx = get_global_id(0);
+    const uint idx_local = get_local_id(0);
+    const uint idx_group = get_group_id(0);
+
+    const uint start_idx = idx_group * chunk_size;
+    uint end_idx = (idx_group + 1) * chunk_size;
+
+
+    const uint part = idx_local / 8;
+    const uint shift = (idx_local % 8) * 8;
+
+    if (end_idx > len) end_idx = len;
+
+    if (start_idx >= len) return;
+
+    for (uint i = start_idx; i < end_idx; i++) {
+        if (idx_local == 0){ 
+            group_point = points[i];
+            group_exp = exps[i];
+        } 
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        current_point = group_point;
+        current_exp = group_exp;
+
+        uint exp_idx = (current_exp.data[part] >> shift) & mask;
+
+        if (exp_idx > 0) {
+            projective_add_assign_mixed(&buckets[exp_idx - 1], &current_point);
+        }
+    }
+    
+    Projective sum = PROJECTIVE_ZERO;
+    Projective partial_sum = PROJECTIVE_ZERO;
+
+    for (int i = 255; i > 0; i--) {
         projective_add_assign(&partial_sum, &buckets[i-1]);
         projective_add_assign(&sum, &partial_sum);
     }
@@ -3049,7 +3427,7 @@ __kernel void affine_mulexp_smart_quarter(__global const Affine* points, __globa
     }
 }
 
-#endif
+
 // Simple multiexponentiation without reduction
 __kernel void test_affine_mul_binary(__global const Affine* bases,
                                     __global const FrRepr* exps,
@@ -3069,7 +3447,7 @@ __kernel void test_affine_mul_binary(__global const Affine* bases,
     results[id] = result;
 }
 
-#ifdef EXCLUDE
+
 __kernel void test_affine_mul_binary_lower_half(__global const Affine* bases,
                                     __global const FrRepr* exps,
                                     __global Projective* results, uint length) {
@@ -3316,7 +3694,124 @@ __kernel void pippenger_spread(__global const Affine* points, __global const FrR
         uint exp_idx = (current_exp.data[part] >> shift) & 0x01;
 
         if (exp_idx > 0) {
-            projective_add_assign_mixed(&sum, &current_point);
+            //projective_add_assign_mixed(&sum, &current_point);
+            if (affine_is_zero(&current_point)) {
+                //return;
+            } else if (projective_is_zero(&sum)) {
+                sum.x = current_point.x;
+                sum.y = current_point.y;
+
+                Fq temp = FQ_ONE;
+                sum.z = temp;
+            } else {
+                Fq z1z1;
+                z1z1 = sum.z;
+                fq_square(&z1z1);
+
+                Fq u2;
+                u2 = current_point.x;
+                fq_mul_assign(&u2, &z1z1);
+
+                Fq s2;
+                s2 = current_point.y;
+                fq_mul_assign(&s2, &sum.z);
+                fq_mul_assign(&s2, &z1z1);
+
+                if (fq_eq(&sum.x, &u2) && fq_eq(&sum.y, &s2)) {
+                    //projective_double(&sum);
+                    if (projective_is_zero(&sum)) {
+                        
+                    } else {
+                        Fq a;
+                        a = sum.x;
+                        fq_square(&a);
+
+                        Fq b;
+                        b = sum.y;
+                        fq_square(&b);
+
+                        Fq c;
+                        c = b;
+                        fq_square(&c);
+
+                        Fq d;
+                        d = sum.x;
+                        fq_add_assign(&d, &b);
+                        fq_square(&d);
+                        fq_sub_assign(&d, &a);
+                        fq_sub_assign(&d, &c);
+                        fq_double(&d);
+
+                        Fq e;
+                        e = a;
+                        fq_double(&e);
+                        fq_add_assign(&e, &a);
+
+                        Fq f;
+                        f = e;
+                        fq_square(&f);
+
+                        fq_mul_assign(&sum.z, &sum.y);
+                        fq_double(&sum.z);
+
+                        sum.x = f;
+                        fq_sub_assign(&sum.x, &d);
+                        fq_sub_assign(&sum.x, &d);
+
+                        sum.y = d;
+                        fq_sub_assign(&sum.y, &sum.x);
+                        fq_mul_assign(&sum.y, &e);
+                        fq_double(&c);
+                        fq_double(&c);
+                        fq_double(&c);
+                        fq_sub_assign(&sum.y, &c);
+                    }
+                } else {
+                    Fq h;
+                    h = u2;
+                    fq_sub_assign(&h, &sum.x);
+
+                    Fq hh;
+                    hh = h;
+                    fq_square(&hh);
+
+                    Fq i;
+                    i = hh;
+                    fq_double(&i);
+                    fq_double(&i);
+
+                    Fq j;
+                    j = h;
+                    fq_mul_assign(&j, &i);
+
+                    Fq r;
+                    r = s2;
+                    fq_sub_assign(&r, &sum.y);
+                    fq_double(&r);
+
+                    Fq v;
+                    v = sum.x;
+                    fq_mul_assign(&v, &i);
+
+                    sum.x = r;
+                    fq_square(&sum.x);
+                    fq_sub_assign(&sum.x, &j);
+                    fq_sub_assign(&sum.x, &v);
+                    fq_sub_assign(&sum.x, &v);
+
+                    fq_mul_assign(&j, &sum.y);
+                    fq_double(&j);
+                    sum.y = v;
+                    fq_sub_assign(&sum.y, &sum.x);
+                    fq_mul_assign(&sum.y, &r);
+                    fq_sub_assign(&sum.y, &j);
+
+                    fq_add_assign(&sum.z, &h);
+                    fq_square(&sum.z);
+                    fq_sub_assign(&sum.z, &z1z1);
+                    fq_sub_assign(&sum.z, &hh);
+                }
+            }
         }
     }
     
