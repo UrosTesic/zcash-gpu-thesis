@@ -1747,7 +1747,7 @@ fn test_gpu_double() {
         }
 
         let group_size = 128;
-        let group_size_exp = 32;
+        let group_size_exp = 64;
         println!("Points: {}, ", num_points);
         for _ in 0..iterations {
             let now = Instant::now();
