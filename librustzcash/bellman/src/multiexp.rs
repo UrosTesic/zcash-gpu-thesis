@@ -541,7 +541,8 @@ pub fn run_tests() {
     //test_gpu_reduce_cstyle().unwrap();
     //test_gpu_multiexp_simple_cstyle().unwrap();
     // test_gpu_multiexp_smart();
-    // test_gpu_multiexp_pippenger_spread();
+    println!("Pippinger spread");
+    test_gpu_multiexp_pippenger_spread();
     // println!("Vanilla test");
     // test_cpu_multiexp_vanilla();
 
@@ -559,8 +560,8 @@ pub fn run_tests() {
     // println!("131071 dump, 20 split");
     // test_cpu_multiexp_pregen();
 
-    println!("Simple multiexp GPU - entire exponent");
-    test_gpu_multiexp_simple();
+    // println!("Simple multiexp GPU - entire exponent");
+    // test_gpu_multiexp_simple();
 
     /*println!("Simple multiexp GPU - 1/2 exponent");
     test_gpu_multiexp_simple_lower_half();
@@ -568,11 +569,11 @@ pub fn run_tests() {
     println!("Simple multiexp GPU - 1/4 exponent");
     test_gpu_multiexp_simple_lower_quarter();*/
 
-    // println!("Smart multiexp GPU - entire exponent");
-    // test_gpu_multiexp_smart();
+    println!("Smart multiexp GPU - entire exponent");
+    test_gpu_multiexp_smart();
 
-    println!("Windowed multiexp GPU - entire exponent");
-    test_gpu_multiexp_window();
+    // println!("Windowed multiexp GPU - entire exponent");
+    // test_gpu_multiexp_window();
 
     // test_gpu_double();
 
@@ -2636,7 +2637,7 @@ fn test_gpu_multiexp_smart() {
 
     let iterations = 2;
 
-    let chunk_size = [/*2, 5,*/ 10, 20, 40, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
+    let chunk_size = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700];
 
     let num_points = 131071;
     let mut points = Vec::new();
@@ -2800,9 +2801,9 @@ fn test_gpu_multiexp_smart() {
         
     }
 
-    for i in 1..results.len() {
+    /*for i in 1..results.len() {
             assert_eq!(results[i-1], results[i]);
-        }
+        }*/
 }
 
 #[inline(always)]
@@ -2821,7 +2822,7 @@ fn test_gpu_multiexp_smart_no_red() {
 
     let iterations = 2;
 
-    let chunk_size = [/*100, 200, 300, 400, 500, 600,*/ 700, 800, 900, 1000];
+    let chunk_size = [/*100, 200, */300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500];
 
     let num_points = 131071;
     let mut points = Vec::new();
@@ -3207,7 +3208,7 @@ fn test_gpu_multiexp_pippenger_spread() {
 
     let iterations = 2;
 
-    let chunk_size = [64, 128, 256, 500, 1000, 1500, 2000, 3000, 4000, 5000, 5500, 6000, 7500, 8000, 8500, 9000, 9500, 10000, 11000, 12000, 13000, 14000, 15000, 20000, 25000, 30000];
+    let chunk_size = [256, 500, 700, 1000, 1500, 2000, 3000, 4000, 5000, 5500, 6000, 7500, 8000, 8500, 9000, 9500, 10000, 11000, 12000, 13000, 14000, 15000, 20000, 25000, 30000];
 
     let num_points = 131071;
     let mut points = Vec::new();
