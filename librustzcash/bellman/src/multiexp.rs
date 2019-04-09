@@ -541,8 +541,8 @@ pub fn run_tests() {
     //test_gpu_reduce_cstyle().unwrap();
     //test_gpu_multiexp_simple_cstyle().unwrap();
     // test_gpu_multiexp_smart();
-    println!("Pippinger spread");
-    test_gpu_multiexp_pippenger_spread();
+    //println!("Pippinger spread");
+    //test_gpu_multiexp_pippenger_spread();
     // println!("Vanilla test");
     // test_cpu_multiexp_vanilla();
 
@@ -569,8 +569,8 @@ pub fn run_tests() {
     println!("Simple multiexp GPU - 1/4 exponent");
     test_gpu_multiexp_simple_lower_quarter();*/
 
-    println!("Smart multiexp GPU - entire exponent");
-    test_gpu_multiexp_smart();
+    //println!("Smart multiexp GPU - entire exponent");
+    //test_gpu_multiexp_smart();
 
     // println!("Windowed multiexp GPU - entire exponent");
     // test_gpu_multiexp_window();
@@ -580,8 +580,8 @@ pub fn run_tests() {
     //println!("Smart multiexp GPU - entire exponent no local reduction large");
     //test_gpu_multiexp_smart_no_red_large();
 
-    //println!("Smart multiexp GPU - entire exponent no local reduction");
-    //test_gpu_multiexp_smart_no_red();
+    println!("Smart multiexp GPU - entire exponent no local reduction");
+    test_gpu_multiexp_smart_no_red();
 
     /*println!("Smart multiexp GPU - 1/2 exponent");
     test_gpu_multiexp_smart_lower_half();
