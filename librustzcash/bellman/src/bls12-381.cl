@@ -2683,7 +2683,7 @@ __kernel void projective_reduce_step_global(__global Projective* points, uint le
 }
 
 
-
+#ifdef EXCLUDE
 __kernel void double_kernel_test(__global const Projective* bases, uint len, __global Projective* out){
     uint idx = get_global_id(0);
 
@@ -2694,7 +2694,7 @@ __kernel void double_kernel_test(__global const Projective* bases, uint len, __g
     out[idx] = point;
 }
 
-#ifdef EXCLUDE
+
 // Simple multiexponentiation with local reduction
 __kernel void affine_mulexp_binary(__global const Affine* bases, __global const FrRepr* exps, uint len,
                                    __local Projective* redBuf, __global Projective* out){
@@ -2772,7 +2772,7 @@ struct Task {
 };
 
 typedef struct Task Task;
-
+#endif
 #define BUCKET_BITS 4
 
 // Use group size of 64 to use the entire exponent. Use group size of 32 for lower half.
@@ -2841,7 +2841,7 @@ __kernel void affine_mulexp_smart(__global const Affine* points, __global const 
         out[idx_group] = sum;
     }
 }
-#endif
+
 __kernel void affine_mulexp_smart_no_red(__global const Affine* points, __global const FrRepr* exps,
                                   uint len, uint chunk_size, __global Projective* out) {
     Projective buckets[15] = {
@@ -3427,7 +3427,7 @@ __kernel void affine_mulexp_smart_quarter(__global const Affine* points, __globa
     }
 }
 
-#endif
+
 // Simple multiexponentiation without reduction
 __kernel void test_affine_mul_binary(__global const Affine* bases,
                                     __global const FrRepr* exps,
@@ -3446,7 +3446,7 @@ __kernel void test_affine_mul_binary(__global const Affine* bases,
 
     results[id] = result;
 }
-#ifdef EXCLUDE
+
 
 __kernel void test_affine_mul_binary_lower_half(__global const Affine* bases,
                                     __global const FrRepr* exps,
@@ -3483,7 +3483,7 @@ __kernel void test_affine_mul_binary_lower_quarter(__global const Affine* bases,
 
     results[id] = result;
 }
-#endif
+
 // Windowed multiexponentiation
 __kernel void test_affine_mul_window(__global const Affine* bases,
                                     __global const FrRepr* exps,
@@ -3502,7 +3502,7 @@ __kernel void test_affine_mul_window(__global const Affine* bases,
 
     results[id] = result;
 }
-#ifdef EXCLUDE
+
 __kernel void pippenger_step_first(__global const Affine* points, __global const FrRepr* exps,
                                           uint len, uint chunk_size, __global Projective* out) {
     Projective buckets[7] = {
@@ -3659,6 +3659,7 @@ __kernel void pippenger_step_general(__global const Affine* points, __global con
     out[idx] = sum;
 }
 
+#endif
 __kernel void pippenger_spread(__global const Affine* points, __global const FrRepr* exps,
                                           uint len, uint chunk,  __global Projective* out) {
 
@@ -3817,4 +3818,3 @@ __kernel void pippenger_spread(__global const Affine* points, __global const FrR
     
     out[local_size*idx_group + idx_local] = sum;
 }
-#endif
