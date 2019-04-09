@@ -2637,7 +2637,7 @@ inline void projective_reduce_local_smart(__local Projective* redBuf, Projective
     }
 }
 
-#ifdef EXCLUDE
+
 // Reduction kernel that uses local reduction. Supposed to be called several times.
 __kernel void projective_reduce_step(__global Projective* points, uint len,
                                      __local Projective* redBuf) {
@@ -2682,7 +2682,7 @@ __kernel void projective_reduce_step_global(__global Projective* points, uint le
     points[idx] = point1;
 }
 
-#endif
+
 
 __kernel void double_kernel_test(__global const Projective* bases, uint len, __global Projective* out){
     uint idx = get_global_id(0);
@@ -2841,7 +2841,7 @@ __kernel void affine_mulexp_smart(__global const Affine* points, __global const 
         out[idx_group] = sum;
     }
 }
-
+#endif
 __kernel void affine_mulexp_smart_no_red(__global const Affine* points, __global const FrRepr* exps,
                                   uint len, uint chunk_size, __global Projective* out) {
     Projective buckets[15] = {
@@ -3250,7 +3250,7 @@ __kernel void projective_pippinger_reduction(__global Projective* points, const 
     }
 }
 
-
+#ifdef EXCLUDE
 __kernel void affine_mulexp_smart_lower_half(__global const Affine* points, __global const FrRepr* exps,
                                   uint len, uint chunk_size, __global Projective* out) {
     Projective buckets[15] = {
@@ -3427,7 +3427,7 @@ __kernel void affine_mulexp_smart_quarter(__global const Affine* points, __globa
     }
 }
 
-
+#endif
 // Simple multiexponentiation without reduction
 __kernel void test_affine_mul_binary(__global const Affine* bases,
                                     __global const FrRepr* exps,
@@ -3446,7 +3446,7 @@ __kernel void test_affine_mul_binary(__global const Affine* bases,
 
     results[id] = result;
 }
-
+#ifdef EXCLUDE
 
 __kernel void test_affine_mul_binary_lower_half(__global const Affine* bases,
                                     __global const FrRepr* exps,
@@ -3483,7 +3483,7 @@ __kernel void test_affine_mul_binary_lower_quarter(__global const Affine* bases,
 
     results[id] = result;
 }
-
+#endif
 // Windowed multiexponentiation
 __kernel void test_affine_mul_window(__global const Affine* bases,
                                     __global const FrRepr* exps,
@@ -3502,7 +3502,7 @@ __kernel void test_affine_mul_window(__global const Affine* bases,
 
     results[id] = result;
 }
-
+#ifdef EXCLUDE
 __kernel void pippenger_step_first(__global const Affine* points, __global const FrRepr* exps,
                                           uint len, uint chunk_size, __global Projective* out) {
     Projective buckets[7] = {

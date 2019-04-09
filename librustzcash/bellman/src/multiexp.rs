@@ -547,8 +547,8 @@ pub fn run_tests() {
 
     // test_cpu_simple_dump();
 
-    // println!("131071 dump:");
-    // test_cpu_multiexp_dump();
+    //println!("131071 dump:");
+    //test_cpu_multiexp_dump();
 
     // println!("131071 dump, lower three quarters:");
     // test_cpu_multiexp_lower_three_quarters();
@@ -559,8 +559,8 @@ pub fn run_tests() {
     // println!("131071 dump, 20 split");
     // test_cpu_multiexp_pregen();
 
-    // println!("Simple multiexp GPU - entire exponent");
-    // test_gpu_multiexp_simple();
+    println!("Simple multiexp GPU - entire exponent");
+    test_gpu_multiexp_simple();
 
     /*println!("Simple multiexp GPU - 1/2 exponent");
     test_gpu_multiexp_simple_lower_half();
@@ -571,7 +571,10 @@ pub fn run_tests() {
     // println!("Smart multiexp GPU - entire exponent");
     // test_gpu_multiexp_smart();
 
-    test_gpu_double();
+    println!("Windowed multiexp GPU - entire exponent");
+    test_gpu_multiexp_window();
+
+    // test_gpu_double();
 
     //println!("Smart multiexp GPU - entire exponent no local reduction large");
     //test_gpu_multiexp_smart_no_red_large();
@@ -1498,7 +1501,7 @@ fn test_gpu_multiexp_simple() {
 
     let iterations = 2;
 
-    let test_set = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 132000, 200000, 500000, 1000000];
+    let test_set = [131071];
 
     let mut points = Vec::new();
     let mut exponents = Vec::new();
@@ -1592,6 +1595,181 @@ fn test_gpu_multiexp_simple() {
             let kernel = Kernel::builder()
                         .program(&program)
                         .name("test_affine_mul_binary")
+                        .global_work_size(dims)
+                        .arg(&buffer_points)
+                        .arg(&buffer_exponents)
+                        .arg(&buffer_results)
+                        .arg(&length)
+                        .build().unwrap();
+
+            unsafe {
+                kernel.cmd()
+                    .queue(&queue)
+                    .global_work_offset(kernel.default_global_work_offset())
+                    .global_work_size(dims)
+                    .local_work_size(group_size_exp)
+                    .enq().unwrap();
+            }
+            
+            let mut dims = ((num_points + group_size - 1) / group_size) * group_size;
+
+            while length > 1 {
+                let kernel = Kernel::builder()
+                        .program(&program)
+                        .name("projective_reduce_step_global")
+                        .global_work_size(dims)
+                        .arg(&buffer_results)
+                        .arg(&length)
+                        .build().unwrap();
+
+                unsafe {
+                    kernel.cmd()
+                        .queue(&queue)
+                        .global_work_offset(kernel.default_global_work_offset())
+                        .global_work_size(dims)
+                        .local_work_size(group_size)
+                        .enq().unwrap();
+                }
+                length = (length + 1) / 2;
+                dims = (dims + 1) / 2;
+                dims = ((dims + group_size - 1) / group_size) * group_size;
+            }
+
+            let mut result = vec![0u64; 3*FQ_WIDTH];
+
+            buffer_results.cmd().read(&mut result).enq().unwrap();
+            queue.finish().unwrap();
+            let duration = now.elapsed();
+            println!("{}.{:06}, ", duration.as_secs(), duration.subsec_micros());
+
+            let mut result_arr = [0u64; 3*FQ_WIDTH];
+            for i in 0..result.len() {
+                result_arr[i] = result[i];
+            }
+            unsafe {
+                let p: G1Projective = transmute(result_arr);
+                results.push(p);
+            }
+        }
+        println!();
+    
+        for i in 1..results.len() {
+            assert_eq!(results[i-1], results[i]);
+        }
+        results.clear();
+    }
+}
+
+#[inline(always)]
+fn test_gpu_multiexp_window() {
+    use std::fs::read_to_string;
+
+    use ocl::{flags, Platform, Device, Context, Queue, Program,
+    Buffer, Kernel};
+
+    use rand::{Rand, SeedableRng, XorShiftRng};
+    use std::ops::IndexMut;
+    use std::mem;
+
+    const FQ_WIDTH: usize = 6;
+    const FR_WIDTH: usize = 4;
+
+    let iterations = 2;
+
+    let test_set = [131071];
+
+    let mut points = Vec::new();
+    let mut exponents = Vec::new();
+
+    let mut results = Vec::new();
+
+    let mut points_gpu = Vec::new();
+    let mut exps_gpu = Vec::new();
+
+    let opencl_string = read_to_string("./src/bls12-381.cl").unwrap();
+
+    let platform = Platform::default();
+    println!("Devices: {}", Device::list_all(platform).unwrap().len());
+    let device = Device::first(platform).unwrap();
+
+    let context = Context::builder()
+                        .platform(platform)
+                        .devices(device.clone())
+                        .build().unwrap();
+
+    println!("Preparing to build!");
+    let program = Program::builder()
+                        .devices(device)
+                        .src(opencl_string)
+                        .build(&context).unwrap();
+
+    println!("Kernel built!");
+    let queue = Queue::new(&context, device, None).unwrap();
+    
+    for &num_points in test_set.iter() {
+        let buffer_points = Buffer::<u64>::builder()
+                                    .queue(queue.clone())
+                                    .flags(flags::MEM_READ_WRITE)
+                                    .len(num_points*(2*FQ_WIDTH+1))
+                                    .build().unwrap();
+
+        let buffer_exponents = Buffer::<u64>::builder()
+                                    .queue(queue.clone())
+                                    .flags(flags::MEM_READ_WRITE)
+                                    .len(num_points*FR_WIDTH)
+                                    .build().unwrap();
+
+        let buffer_results = Buffer::<u64>::builder()
+                                    .queue(queue.clone())
+                                    .flags(flags::MEM_READ_WRITE)
+                                    .len(num_points*FQ_WIDTH*3)
+                                    .build().unwrap();
+
+        points.clear();
+        exponents.clear();
+        points_gpu.clear();
+        exps_gpu.clear();
+        load_data(&"./src/point_exp_pairs.txt", num_points, &mut points, &mut exponents);
+        for i in 0..num_points {
+            unsafe {
+                let point: (Fq, Fq, bool) = transmute(points[i]);
+
+                let point_0: [u64; FQ_WIDTH] = transmute(point.0);
+                let point_1: [u64; FQ_WIDTH] = transmute(point.1);
+
+                for &num in point_0.iter() {
+                    points_gpu.push(num);
+                }
+
+                for &num in point_1.iter() {
+                    points_gpu.push(num);
+                }
+
+                points_gpu.push(point.2 as u64);
+
+                let exp: [u64; FR_WIDTH] = transmute(exponents[i]);
+
+                for &e in exp.iter() {
+                    exps_gpu.push(e);
+                }
+            }
+        }
+
+        let group_size = 128;
+        let group_size_exp = 32;
+        println!("Points: {}, ", num_points);
+        for _ in 0..iterations {
+            let now = Instant::now();
+
+            buffer_points.cmd().write(&points_gpu).enq().unwrap();
+            buffer_exponents.cmd().write(&exps_gpu).enq().unwrap();
+
+            let mut length = num_points as u32;
+            let mut dims = ((num_points + group_size_exp - 1) / group_size_exp) * group_size_exp;
+
+            let kernel = Kernel::builder()
+                        .program(&program)
+                        .name("test_affine_mul_window")
                         .global_work_size(dims)
                         .arg(&buffer_points)
                         .arg(&buffer_exponents)
@@ -2643,7 +2821,7 @@ fn test_gpu_multiexp_smart_no_red() {
 
     let iterations = 2;
 
-    let chunk_size = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
+    let chunk_size = [/*100, 200, 300, 400, 500, 600,*/ 700, 800, 900, 1000];
 
     let num_points = 131071;
     let mut points = Vec::new();
