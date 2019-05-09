@@ -32,7 +32,7 @@ If the proof verification passes, the node can check if the note has been spent 
 
 \section{Zero-Knowledge Proofs}
 
-In 1985. Goldwasser, Micali and Rackoff published a paper with an interesting twist. Most papers discussed methods of combating a dishonest prover, trying to deceive an honest verifier. Their work took a completely different approach: What information could a verifier obtain from a prover? They defined a new class of languages - IP (Interactive Proof). IP contains language L for which there is an interactive protocol between the prover P and a verifier V, after which P has convinced V with a non-negligible probability that the statement s is in the language L.\\
+In 1985. Goldwasser, Micali and Rackoff published a paper with an interesting twist.\cite{goldwasser1985knowledge} Most papers discussed methods of combating a dishonest prover, trying to deceive an honest verifier. Their work took a completely different approach: What information could a verifier obtain from a prover? They defined a new class of languages - IP (Interactive Proof). IP contains language L for which there is an interactive protocol between the prover P and a verifier V, after which P has convinced V with a non-negligible probability that the statement s is in the language L.\\
 \\
 The interactive proof must satisfy the following properties:
 \begin{itemize}
@@ -46,7 +46,7 @@ The choice of constants 2/3 and 1/3 is arbitrary, because probability amplificat
 \\
 Another important property that a proof may have is \textbf{zero-knowledge}. While two previous properties are tied to different provers, zero-knowledge states that all verifiers can learn only that the statement \textit{s} belongs to the language \textit{L}. This statement can be formalized using a simulator and a transcript. \textit{V} can generate the transcript with the same distribution as the messages exchanged during the protocol, without ever communicating with \textit{P}. Hence, \textit{V} learns nothing from \textit{P}, other than $s \in L$.\\
 \\
-Unfortunately, zero-knowledge proofs described are interactive. They cannot be used in blockchain because every verification of the blocks would require all parties to be online and exchange messages with the verifier. Blum, Feldman and Micali introduced \textbf{N}on-\textbf{I}nteractive \textbf{Z}ero-\textbf{K}nowledge proofs (NIZK - pronounced \textit{nee-zeek}). These proofs require a preparation step - establishment of a common reference string (CRS). This is performed once and CRS is later used for proof generation and verification.
+Unfortunately, zero-knowledge proofs described are interactive. They cannot be used in blockchain because every verification of the blocks would require all parties to be online and exchange messages with the verifier. Blum, Feldman and Micali \cite{blum1988non} introduced \textbf{N}on-\textbf{I}nteractive \textbf{Z}ero-\textbf{K}nowledge proofs (NIZK - pronounced \textit{nee-zeek}). These proofs require a preparation step - establishment of a common reference string (CRS). This is performed once and CRS is later used for proof generation and verification.
 
 \section{zk-SNARKs}
 
