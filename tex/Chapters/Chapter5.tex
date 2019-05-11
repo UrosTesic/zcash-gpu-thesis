@@ -55,12 +55,12 @@ Pippinger's multiexponentiation algorithm can be used to calculate the required 
     
     \If{$Shift + Width < EXP\_BITS$}
         \State \textbf{wait} $Higher$
-        \State $Sum \gets Sum + 2^{Width} \cdot Higher$ 
+        \State $Sum \gets Sum + \cdot Higher^{2 \cdot Width}$ 
     \EndIf
     
     \State \textbf{return} $Sum$
 \EndFunction
-
+\\
 \Function{Multiexp}{\textit{Bases}[1 \dots n], \textit{Exponents}[1 \dots n]}
     \If{n < 32}
         \State $Width \gets 3$
@@ -83,13 +83,80 @@ Afterwards, we wait for higher threads to finish, and combine results.\\
 As we can see this algorithm is quite paralellizable. We just need to change the width of the bit chunk to distribute work over more threads. Another possibility is to split the bases and exponents, and do the calculation separately. However, we notice some limitations as well. There is sequential work that needs to be done when we are combining results. We cannot split the work on more processors than there are bits in the exponent, without splitting the bases.
 \\
 \subsection{Implemented Algorithms}
-\subsubsection{Global Reduction}
-Global reduction kernel performs one step of reduction. It loads two elliptic curve points in projective coordinates, adds them, and writes them back to the memory. This kernel is called multiple times, with half the length every time, until we add all points together.
-\subsubsection{Local Reduction}
-Local reduction kernel tries to take advantage of faster local memory available on a GPU. It loads a group of points to local memory, and reduces them until only one point is left. Compared to the global reduction kernel, it uses more local memory, and as reduction progresses many computing units don't do any work. However, it needs to be called less times, and the number of loads from the global memory is significantly smaller.
+
+% \subsubsection{Global Reduction}
+% Global reduction kernel performs one step of reduction. It loads two elliptic curve points in projective coordinates, adds them, and writes them back to the memory. This kernel is called multiple times, with half the length every time, until we add all points together.
+% \subsubsection{Local Reduction}
+% Local reduction kernel tries to take advantage of faster local memory available on a GPU. It loads a group of points to local memory, and reduces them until only one point is left. Compared to the global reduction kernel, it uses more local memory, and as reduction progresses many computing units don't do any work. However, it needs to be called less times, and the number of loads from the global memory is significantly smaller.
+
 \subsubsection{Square and Multiply}
+
+\begin{algorithm}
+    \caption{Square and Multiply}\label{multiexp}
+    \begin{algorithmic}[1]
+    \Function{SAM}{\textit{Base}, \textit{Exponent}}
+    
+        \State $Result \gets 1$
+        \For{$i \gets Width \dots 1$}
+            \State $Result \gets Result^2$
+            \If{$Exponent[i] = 1$}
+                \State $Result \gets Result \cdot Base$
+            \EndIf
+        \EndFor
+        \State \textbf{return} $Result$
+    \EndFunction
+    \\
+    \Function{Multiexp}{\textit{Bases}[1 \dots n], \textit{Exponents}[1 \dots n]}
+        \State $Result \gets 1$
+        \For{$i \gets 1 \dots n$}
+            \State $Result \gets Result \cdot $\Call{SAM}{$Bases[i]$, $Exponents[i]$}
+        \EndFor
+    
+        \State \textbf{return} $Result$
+        
+    \EndFunction
+    \end{algorithmic}
+\end{algorithm}
 Square and multiply kernel implements the multiexponentiation in a simple way. Every elliptic curve point and exponent is loaded, exponentiated separately using the binary method, and written back to memory. Reduction algorithm is then called to produce the final result.
 \subsubsection{Windowed Square and Multiply}
+\begin{algorithm}
+    \caption{Windowed Square and Multiply}\label{multiexp}
+    \begin{algorithmic}[1]
+    \Function{WSAM}{\textit{Base}, \textit{Exponent}}
+        \State $PowerTable[1 \dots Chunk] \gets \textbf{new} Base[1 \dots Chunk]$
+        \State $CurrentPower \gets 1$
+        \\
+        \For{$i \gets 1 \dots Chunk$}
+            \State $CurrentPower \gets CurrentPower \cdot Base$
+            \State $PowerTable[i] \ gets CurrentPower$
+        \EndFor
+        \\
+        \State $Result \gets 1$
+        \For{$i \gets Width/Chunk \dots 1$}
+            \State $Bits \gets $ \textit{Get }$i^{th}$ \textit{ Chunk From Exponent}
+            \For{$j \gets 1 \dots Chunk$}
+                \State $Result \gets Result^2$
+            \EndFor
+            \\
+            \If{$Bits \neq 0$}
+                \State $Result \gets Result \cdot PowerTable[Bits]$
+            \EndIf
+        \EndFor
+        \\
+        \State \textbf{return} $Result$
+    \EndFunction
+    \\
+    \Function{Multiexp}{\textit{Bases}[1 \dots n], \textit{Exponents}[1 \dots n]}
+        \State $Result \gets 1$
+        \For{$i \gets 1 \dots n$}
+            \State $Result \gets Result \cdot $\Call{WSAM}{$Bases[i]$, $Exponents[i]$}
+        \EndFor
+    
+        \State \textbf{return} $Result$
+        
+    \EndFunction
+    \end{algorithmic}
+\end{algorithm}
 Windowed method is similar to square-and-multiply. It also works with every point and exponent separately, but it processes the exponent 4 bits at a time. First, a lookup table is generated for the powers of the current base (powers 2-15). For every chunk of the exponent read, it performs the needed amount of doublings, and adds the corresponding power. This method uses more memory than ordinary square-and-multiply, but the number of operations is lower.
 \subsubsection{Four-bit Pippenger's Algorithm}
 This kernel is the closest to the Rust implementation of Pippenger's algorithm. Points are divided in chunks to take advantage of thousands processors on the GPU. Every thread then iterates through the points in the chunk, and reads the four-bit window in the exponent based on the thread index. Point is then added to the corresponding bucket. At the end, we add the buckets and write the result to shared local memory. Then we combine results from all threads working on the same chunk. This is done by a variation of a reduction algorithm working only on local memory. The chunk value is then written to global memory, and a reduction algorithm is called to combine all chunks together.

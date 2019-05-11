@@ -95,7 +95,7 @@ $$ e(A, D) \stackrel{?}{=} e(B, C) $$
 In case of $A = [k]B; C = [k]D$ we have:
 $$ e([k]B, D) \stackrel{?}{=} e(B, [k]D)$$
 We use property of the pairing to move the constant outside the pairings:
-$$ e(B, D)^k = e(B, D)^k $$
+$$ [k]e(B, D) = [k]e(B, D) $$
 If the pairs have the same quotients, both pairings will be equal.\\
 \\
 Using this idea, we can make sure that a polynomial hasn't been forged. We evaluate all polynomials at a secret coordinate t, so we obtain $A_j(t), B_j(t), C_j(t)$ for all gates in the circuit. By also adding these values multiplied by secret coefficients $k_a, k_b$ and $k_c$, we are able to prevent the prover from using arbitrary polynomials. Considering that pairings operate on elliptic curve points, we will use these values to multiply the generator point $G_1$ of a pairing-friendly curve. Values $\rho_A, \rho_B, \beta, \gamma$ are also considered secret, and are used to aid subsequent pairing checks. Accordingly, we add the following values to the trusted setup:
@@ -126,11 +126,11 @@ $$ \pi_{K} = [\beta(\rho_A A(t) + \rho_B B(t) + \rho_A \rho_B C(t))]G_1 $$
 
 Pairing check is performed by the verifier:
 
-$$ e(\pi_K, [\gamma]G_2) \stackrel{?}{=} e(\pi_A + \pi_C, [\gamma\beta]G_2) \cdot e([\gamma\beta]G_1, \pi_B) $$
+$$ e(\pi_K, [\gamma]G_2) \stackrel{?}{=} e(\pi_A + \pi_C, [\gamma\beta]G_2) \oplus e([\gamma\beta]G_1, \pi_B) $$
 
 Finally, they need to prove that the polynomial $A(x) \cdot B(x) - C(x)$ is really divisible by $T(x)$. This is achieved by using the polynomial $H(x)$ to show that multiplying it by $T(x)$ gives us $A(x) \cdot B(x) - C(x)$. If the prover provides $\pi_H = [H(t)]G_1$, we can do this using pairings:
 
-$$ e(\pi_a, \pi_b) \stackrel{?}{=} e(\pi_c, G_2) \cdot e(P_H, [\rho_A \rho_B T(t)]G_2) $$
+$$ e(\pi_a, \pi_b) \stackrel{?}{=} e(\pi_c, G_2) \oplus e(P_H, [\rho_A \rho_B T(t)]G_2) $$
 
 We will now discuss the simplifications made to the proof. The following structure works for proofs without any input wirtes. Adding input wires to the circuit is straightforward. It involves adding several more terms to the CRS, and adding these terms to $\pi_A$ during the linearity and divisibility pairing check. The reader can check the full version of Pinocchio zk-SNARKs in PAPER, or just the review in BEN-SASSON PAPER.\\
 \\
@@ -163,7 +163,7 @@ $$ \pi_C = [\frac{\beta A(t) + \alpha B(t) + C(t) + H(t)T(t)}{\delta} + As + Br 
 
 The verifier needs to check:
 
-$$ e(\pi_A, \pi_B) \stackrel{?}{=} e(\alpha G_1, \beta G_2) \cdot e(\pi_C, \delta G_2) $$
+$$ e(\pi_A, \pi_B) \stackrel{?}{=} e(\alpha G_1, \beta G_2) \oplus e(\pi_C, \delta G_2) $$
 
 Groth's zk-SNARK is also a bit simplified and doesn't include inputs to the circuit. Constants $\alpha, \beta, \delta, r, s, t$ are random secrets generated during the generation of CRS. Polynomials A(x), B(x), C(x), H(x), and T(x) are defined in the same way as in the Pinocchio protocol.
 
