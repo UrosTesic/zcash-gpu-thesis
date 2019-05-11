@@ -25,25 +25,34 @@ For testing on mobile devices, we used \textbf{Samsung S9's Exynos} processor. I
 
 \subsection{OpenCL Support on Different GPUs}
 
-Considering that only 6\% of OpenCL papers test the program on 3 or more different platforms PAPER, we will take this opportunity to list the difficulties we've encountered. For all GPUs we used ocl Rust crate to run OpenCL code.
+Considering that only 6\% of OpenCL papers test the program on 3 or more different platforms \cite{sorensen2016hitchhiker}, we will take this opportunity to list the difficulties we've encountered. For all GPUs we used ocl Rust crate to run OpenCL code.
 
 \subsubsection{NVIDIA}
-NVIDIA drivers officially support only OpenCL 1.2. Recently, there has been some progress towards the more modern standard, with NVIDIA quietly enabling OpenCL 2.0. However, NVIDIA has been pushing its GPGPU solution CUDA over OpenCL, and OpenCL is expected to perform slower than equivalent CUDA code PAPER. This is also visible in dropping support for OpenCL code profiling that was present in older driver versions. However, we've managed to get static kernel data and assembly by dumping the high-level assembly (PTX file), and compiling it for the architecture that our card supports (Compute Capability 6.1). CUDA occupancy calculator was then used to estimate how many threads' states could be saved at the same time.\\
-\\
+\textbf{Setup}\\
+NVIDIA drivers officially support only OpenCL 1.2. Recently, there has been some progress towards the more modern standard, with NVIDIA quietly enabling OpenCL 2.0. However, NVIDIA has been pushing its GPGPU solution CUDA over OpenCL, and OpenCL is expected to perform slightly slower than equivalent CUDA code\cite{fang2011comprehensive, karimi2010performance}. This is also visible in dropping support for OpenCL code profiling that was present in older driver versions. However, we've managed to get static kernel data and assembly by dumping the high-level assembly (PTX file), and compiling it for the architecture that our card supports (Compute Capability 6.1). CUDA occupancy calculator was then used to estimate how many threads' states could be saved at the same time.\\\\
+\textbf{Runtime Bugs}\\\\
 There was one bug in the compiler that we didn't expect. When compiling a kernel for 4-bit Pippenger, if we loaded only the needed portion of the exponent, we would get \texttt{CL\_OUT\_OF\_RESOURCES} error. The same kernel worked without a problem on Intel's GPU. The error was fixed by reading the entire exponent from global memory, instead of only reading the integer that we need.
 
 \subsubsection{Intel}
-Intel's NEO driver supports OpenCL 2.1. Due to extremely slow execution speed, we haven't profiled code executing on this GPU. Running longer kernels (more than ~10s) required us to disable the watchdog timer by writing N to \texttt{/sys/module/i915/parameters/enable\_hangcheck}.\\
-\\
-The biggest issue was encountered when we manually decompiled the square-and-multiply kernel (255 iteration loop). Intel kernel kept outputting wrong result, but adding \texttt{printf} somehow fixed this problem. NVIDIA GPU outputted the correct result for the same code without any issues.\\
-\\
-Older Intel driver didn't support \texttt{printf} for 64-bit integers on Ubuntu, but switching to NEO solved this problem. 
+\textbf{Setup}\\\\
+Intel's NEO driver supports OpenCL 2.1. Due to extremely slow execution speed, we haven't profiled code executing on this GPU. Running longer kernels (more than ~10s) required us to disable the watchdog timer by writing N to \texttt{/sys/module/i915/parameters/enable\_hangcheck}. Unfortunately, because Intel was the main display device, this caused our device to freeze until kernels finished execution.\\\\
+\textbf{Runtime Bugs}\\\\
+The biggest issue was encountered when we manually decompiled the square-and-multiply kernel (255 iteration loop). Intel kernel kept outputting wrong result, but adding \texttt{printf} somehow fixed this problem. NVIDIA GPU outputted the correct result for the same code without any issues. Older Intel driver didn't support \texttt{printf} for 64-bit integers on Ubuntu, but switching to NEO solved this problem. 
 
 \subsubsection{Mali}
-Mali supports OpenCLCompiling OpenCL code for Samsung Galaxy S9 required us to dump OpenCL.so from the phone, and link it during compilation. 32-bit code compiled properly even with \texttt{ld} loader, but 64-bit version required us to use \texttt{gold}. Unfortunately, compilation of OpenCL kernel results in a \texttt{Segmentation Fault} after a couple of minutes for the 32-bit version. It is also interesting that mobile GPUs require us to use low-level ocl crate API (wrapper around C code). After cross-compiling the binary, which requires some basic symlinking to resolve name conflicts during Rust crate compilation, we used \texttt{adb} and \texttt{adbshell} to copy and run code on the device.\\
-\\
-The only problem that we encountered with Mali is the unexpected use of OpenCL API. All other vendors compile the kernel when we call \texttt{clBuildProgram}. However, Mali does this during kernel call creation.
+\textbf{Setup}\\\\
+Mali supports OpenCLCompiling OpenCL code for Samsung Galaxy S9 required us to dump OpenCL.so from the phone, and link it during compilation. 32-bit code compiled properly even with \texttt{ld} loader, but 64-bit version required us to use \texttt{gold}. It is also interesting that mobile GPUs require us to use low-level ocl crate API (wrapper around C code). After cross-compiling the binary, which requires some basic symlinking to resolve name conflicts during Rust crate compilation, we used \texttt{adb} and \texttt{adbshell} to copy and run code on the device.\\\\
+\textbf{Runtime Bugs}\\\\
+Unfortunately, compilation of OpenCL kernel results in a \texttt{Segmentation Fault} after a couple of minutes for the 32-bit version. Another problem that we encountered with Mali is the unexpected use of OpenCL API. All other vendors compile the kernel when we call \texttt{clBuildProgram}, while Mali does this during the kernel call. While testing our kernels, we noticed that the application may get killed if the kernel takes too long.
 
 \subsubsection{ATI}
+\textbf{Setup}\\\\
+ATI has the best support for OpenCL of all vendors tested. The only problem we encountered is that profiler GUI wouldn't start, but CLI version had no issues.\\\\
+\textbf{Runtime Bugs}\\\\
+We haven't encountered any bugs with ATI cards.
 
+\section{Tests}
 
+\subsection{Whole Proof Generation}
+
+CPUs were first benchmarked 
