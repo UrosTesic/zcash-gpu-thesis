@@ -41,7 +41,7 @@ The biggest issue was encountered when we manually decompiled the square-and-mul
 
 \subsubsection{Mali}
 \textbf{Setup}\\\\
-Mali supports OpenCLCompiling OpenCL code for Samsung Galaxy S9 required us to dump OpenCL.so from the phone, and link it during compilation. 32-bit code compiled properly even with \texttt{ld} loader, but 64-bit version required us to use \texttt{gold}. It is also interesting that mobile GPUs require us to use low-level ocl crate API (wrapper around C code). After cross-compiling the binary, which requires some basic symlinking to resolve name conflicts during Rust crate compilation, we used \texttt{adb} and \texttt{adbshell} to copy and run code on the device.\\\\
+Mali supports OpenCL 2.1. Compiling OpenCL code for Samsung Galaxy S9 required us to dump OpenCL.so from the phone, and link it during compilation. 32-bit code compiled properly even with \texttt{ld} loader, but 64-bit version required us to use \texttt{gold}. It is also interesting that mobile GPUs need low-level ocl crate API (wrapper around C code). After cross-compiling the binary, which involved some basic symlinking to resolve name conflicts during Rust crate compilation, we used \texttt{adb} and \texttt{adbshell} to copy and run code on the device.\\\\
 \textbf{Runtime Bugs}\\\\
 Unfortunately, compilation of OpenCL kernel results in a \texttt{Segmentation Fault} after a couple of minutes for the 32-bit version. Another problem that we encountered with Mali is the unexpected use of OpenCL API. All other vendors compile the kernel when we call \texttt{clBuildProgram}, while Mali does this during the kernel call. While testing our kernels, we noticed that the application may get killed if the kernel takes too long.
 
@@ -55,4 +55,26 @@ We haven't encountered any bugs with ATI cards.
 
 \subsection{Whole Proof Generation}
 
-CPUs were first benchmarked 
+This test involved dumping the data from the actual spending proof generation, and run it multiple times on both CPUs with both 32 and 64 bit code. Spending proof has been chosen because it is takes more time to generate than the output proof. We also performed a stress test to determine the drop of performance under heavy load.\\
+\\
+FIGURE\\
+\\
+As we see in FIGURE, 32-bit code is significantly slower than 64-bit code. Also, 64-bit ARM code is comparable in performance with x86-64. There is also a noticable drop in performance during the stress test for ARM, and but for Intel CPU.
+
+\subsection{FFT and Multiexp}
+
+To determine the best target for optimization we benchmarked different parts of spending proof generation on Intel i7 processor. We benchmarked FFT, Multiexp and witness generation.\\
+\\
+FIGURE\\
+\\
+CPU spends the most time performing FFT and multiexponentiation. Witness generation takes several miliseconds at most. In FIGURE, we can see that multiexponentiation takes 85\% time of proof generation. This made multiexponentiation a natural target for optimization. To determine the potential for parallelization, we benchmarked proof generation again, using only one core.\\
+\\
+We can see that performance is several times worse. Plugging in the numbers in Amdahl's law shows that 88.5\% of multiexponentiation is parallelizable (at least in theory).
+
+\subsection{131k Test}
+
+We decided to benchmark our multiexponentiation algorithms on group G1, with ~131k points and exponents. This is the size of the largest array that gets processed. G1 group was selected because it is simpler to port than G2, and gets called more times than multiexponentiation for group G2.\\
+\\
+FIGURE\\
+\\
+The data for integrated GPUs (Intel and Mali) shown in FIGURE is capped at 6 seconds. The actual times are much higher - several minutes for Mali and 10.4 second for the best Intel kernel. NVIDIA and ATI perform better, but still not at the level of CPUs. Square-and-multiply takes the most time, followed by windowed-square-and-multiply. Variants of Pippenger's algorithm are the fastest, with 4-bit Pippenger with CPU reduction taking the best spot. Unfortunately, even it fails to overtake multiexponentiation on Intel i7.
