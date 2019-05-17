@@ -92,7 +92,7 @@ As we can see this algorithm is quite paralellizable. We just need to change the
 \subsubsection{Square and Multiply}
 
 \begin{algorithm}
-    \caption{Square and Multiply}\label{multiexp}
+    \caption{Square and Multiply}\label{sam}
     \begin{algorithmic}[1]
     \Function{SAM}{\textit{Base}, \textit{Exponent}}
     
@@ -120,7 +120,7 @@ As we can see this algorithm is quite paralellizable. We just need to change the
 Square and multiply kernel implements the multiexponentiation in a simple way. Every elliptic curve point and exponent is loaded, exponentiated separately using the binary method, and written back to memory. Reduction algorithm is then called to produce the final result.
 \subsubsection{Windowed Square and Multiply}
 \begin{algorithm}
-    \caption{Windowed Square and Multiply}\label{multiexp}
+    \caption{Windowed Square and Multiply}\label{wsam}
     \begin{algorithmic}[1]
     \Function{WSAM}{\textit{Base}, \textit{Exponent}}
         \State $PowerTable[1 \dots Chunk] \gets \textbf{new} Base[1 \dots Chunk]$

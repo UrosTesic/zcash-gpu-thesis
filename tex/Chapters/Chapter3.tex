@@ -10,21 +10,21 @@
 
 \section{zCash}
 
-Cryptocurrencies have gained in popularity over the last couple of years. The best example is the Bitcoin bubble which made people gain millions over night, and lose them soon after. However, Bitcoin is of limited use today. It cannot be used as a general currency due to the low throughput and long waiting times for the transaction to be added to the block. Its status as an anonymous currency is also disputed, resulting in 2 different cryptocurrencies being developed to fill that void - Monero and zCash (ZEC).\\
+Cryptocurrencies have appeared recently and have been marketed as an alternative to cash and electronic payments. The best example is the Bitcoin bubble which made people gain millions overnight, and lose them soon after. However, Bitcoin is of limited use today. It cannot be used as a general currency due to the low throughput and long waiting times for the transaction to be added to the block. Its status as an anonymous currency is also disputed, resulting in 2 different cryptocurrencies being developed to fill that void - Monero (XMR) \cite{monero} and zCash (ZEC) \cite{zcashmain}.\\
 \\
-ZCash defines two types of addresses. Transparent addresses behave the same way as Bitcoin addresses. Data resides in the public blockchain, so it can be tracked the same way as with Bitcoin. However, shielded addresses reveal nothing when they are a part of the transaction. This is accomplished by using notes (NOTE) which contain the public key (PK) of the owner, some amount of zCash (M), as well as a unique identifier (N). Every shielded transaction results in a note like this (transaction output). When this note is used in a transaction, it is spent, and its nullifier (NULL(N)) is published. Valid, unspent notes are ones which are in the set of all generated notes, and whose nullifier hasn't been published.\\
+ZCash defines two types of addresses. Transparent addresses behave the same way as Bitcoin addresses. Data resides in the public blockchain so it can be tracked the same way as with Bitcoin. However, shielded addresses reveal nothing when they are a part of the transaction. This is accomplished by using notes (NOTE) which contain the public key (\textbf{PK}) of the owner, some amount of zCash (\textbf{M}), as well as a unique identifier (\textbf{N}). Every shielded transaction results in a note like this (transaction output). When this note is used in a transaction, it is spent, and its nullifier (\textbf{NULL(N)}) is published. Valid, unspent notes are ones which are in the set of all generated notes, and whose nullifier hasn't been published.\\
 \\
-Keeping all notes in a list would result is abysmal performance, so they are kept in a Merkle tree. Furthermore, instead of keeping notes in a public structure, where everyone can see them, we keep commitments to notes (COMM(NOTE)). This guarantees that the value and owner of note are not public. However, now that we don't know PK of the note's owner, how do we verify the transaction?\\
+Keeping all notes in a list would result is an abysmal performance, so they are kept in a Merkle tree. Furthermore, instead of keeping notes in a public structure, where everyone can see them, we keep commitments to notes (\textbf{COMM(NOTE)}). This guarantees that the value and owner of note are not public. However, now that we don't know \textbf{PK} of the note's owner, how do we verify the transaction?\\
 \\
-Spending a note in zCash involves computing a zero-knowledge proof $\pi$. It requires the NOTE's spender to prove the following:
+Spending a note in zCash involves computing a zero-knowledge proof $\pi$. This requires the \textbf{NOTE}'s spender to prove the following:
 
 \begin{itemize}
-    \item The commitment COMM(NOTE) exists in a Merkle tree with all notes
-    \item That they have the private key SK, corresponding to the note's public key PK
-    \item The NULL(N) is equal to the nullifier provided (T)
+    \item The commitment \textbf{COMM(NOTE)} exists in a Merkle tree with all notes
+    \item That they have the private key \textbf{SK}, corresponding to the note's public key \textbf{PK}
+    \item The \textbf{NULL(N)} is equal to the nullifier provided (\textbf{T})
 \end{itemize}
 
-If the proof verification passes, the node can check if the note has been spent previously by searching for T in a Merkle tree with published nullifiers. This results in the transaction being accepted and added to the blockchain. Along with this T is added to the set of spent nullifiers.
+If the proof verification passes, the node can check if the note has been spent previously by searching for \textbf{T} in a Merkle tree with published nullifiers. This results in the transaction being accepted and added to the blockchain. Along with this \textbf{T} is added to the set of spent nullifiers. For more information read \cite{zcashzksnarks, zcashprotocol}.
 
 %----------------------------------------------------------------------------------------
 %	SECTION 2
@@ -32,7 +32,7 @@ If the proof verification passes, the node can check if the note has been spent 
 
 \section{Zero-Knowledge Proofs}
 
-In 1985. Goldwasser, Micali and Rackoff published a paper with an interesting twist.\cite{goldwasser1985knowledge} Most papers discussed methods of combating a dishonest prover, trying to deceive an honest verifier. Their work took a completely different approach: What information could a verifier obtain from a prover? They defined a new class of languages - IP (Interactive Proof). IP contains language L for which there is an interactive protocol between the prover P and a verifier V, after which P has convinced V with a non-negligible probability that the statement s is in the language L.\\
+In 1985. Goldwasser, Micali, and Rackoff published a paper with an interesting twist.\cite{goldwasser1985knowledge} Most papers discussed methods of combating a dishonest prover, trying to deceive an honest verifier. Their work took a completely different approach: What information could a verifier obtain from a prover? They defined a new class of languages - IP (Interactive Proof). IP contains language L for which there is an interactive protocol between the prover P and a verifier V, after which P has convinced V with a non-negligible probability that the statement s is in the language L.\\
 \\
 The interactive proof must satisfy the following properties:
 \begin{itemize}
@@ -42,16 +42,18 @@ The interactive proof must satisfy the following properties:
     $$ s \notin L \implies \forall P Pr[out_V \langle V, P \rangle (s) = 1 ] < 1/3 $$
 \end{itemize}
 
-The choice of constants 2/3 and 1/3 is arbitrary, because probability amplification can be used until we are satisfied with the probability of error.\\
+The choice of constants 2/3 and 1/3 is arbitrary because probability amplification can be used until we are satisfied with the probability of error.\\
 \\
-Another important property that a proof may have is \textbf{zero-knowledge}. While two previous properties are tied to different provers, zero-knowledge states that all verifiers can learn only that the statement \textit{s} belongs to the language \textit{L}. This statement can be formalized using a simulator and a transcript. \textit{V} can generate the transcript with the same distribution as the messages exchanged during the protocol, without ever communicating with \textit{P}. Hence, \textit{V} learns nothing from \textit{P}, other than $s \in L$.\\
+Another important property that proof may have is \textbf{zero-knowledge}. While two previous properties are tied to different provers, zero-knowledge states that all verifiers can learn only that the statement \textit{s} belongs to the language \textit{L}. This statement can be formalized using a simulator and a transcript. \textit{V} can generate the transcript with the same distribution as the messages exchanged during the protocol, without ever communicating with \textit{P}. Hence, \textit{V} learns nothing from \textit{P}, other than $s \in L$.\\
 \\
-Unfortunately, zero-knowledge proofs described are interactive. They cannot be used in blockchain because every verification of the blocks would require all parties to be online and exchange messages with the verifier. Blum, Feldman and Micali \cite{blum1988non} introduced \textbf{N}on-\textbf{I}nteractive \textbf{Z}ero-\textbf{K}nowledge proofs (NIZK - pronounced \textit{nee-zeek}). These proofs require a preparation step - establishment of a common reference string (CRS). This is performed once and CRS is later used for proof generation and verification.
+Unfortunately, zero-knowledge proofs described are interactive. They cannot be used in blockchain because every verification of the blocks would require all parties to be online and exchange messages with the verifier. Blum, Feldman and Micali \cite{blum1988non} introduced \textbf{N}on-\textbf{I}nteractive \textbf{Z}ero-\textbf{K}nowledge proofs (NIZK - pronounced \textit{nee-zeek}). These proofs require a preparation step - the establishment of a common reference string (CRS). This is performed once and CRS is later used for proof generation and verification.
 
 \section{zk-SNARKs}
 
 \subsection{Introduction}
-zk-SNARKs are a cryptographic primitive used for zero-knowledge proofs. Their name stands for \textbf{Z}ero-\textbf{K}nowledge \textbf{S}uccinct \textbf{N}on-Interactive \textbf{Ar}guments of \textbf{K}nowledge. They cannot be considered true proofs, but arguments because they hold only computationally. The main strength lies in succinctness and non-interactivity - zk-SNARK proofs are short and can be verified offline. Furthermore, they can be used to prove any statement that can be represented as a circuit (eg. any finite computation on a modern CPU). This can be useful in a number of contexts, not only for cryptocurrencies. (eg. verifieable cloud execution). zk-SNARKs aren't interactive so they require a preparation stage to generate a CRS. Most of the material in this section is based on a series of articles by Vitali Buterin. The differences from Buterin's articles, as well as from the original papers are discussed at the end of this section.  For further information consult original papers, as well as zCash blog and protocol. % cite Pinocchio, Groth, zCash blog posts, articles by Vitali Buterin
+zk-SNARKs are a cryptographic primitive used for zero-knowledge proofs. Their name stands for \textbf{Z}ero-\textbf{K}nowledge \textbf{S}uccinct \textbf{N}on-Interactive \textbf{Ar}guments of \textbf{K}nowledge. They cannot be considered true proofs, but arguments because they hold only computationally. The main strength lies in succinctness and non-interactivity - zk-SNARK proofs are short and can be verified offline. Furthermore, they can be used to prove any statement that can be represented as a circuit (eg. any finite computation on a modern CPU). This can be useful in a number of contexts, not only for cryptocurrencies. (eg. verifiable cloud execution). zk-SNARKs aren't interactive so they require a preparation stage to generate a CRS.\\
+\\
+Most of the material in this section is based on a series of articles by Vitali Buterin\cite{buterin1, buterin2, buterin3} and is meant to be a bridge towards understanding zk-SNARKs as described in \cite{parno2013pinocchio, ben2014succinct, groth2016size}. The differences from Buterin's articles, as well as from the original papers are discussed at the end of this section. For further information consult original papers\cite{parno2013pinocchio, ben2014succinct, groth2016size, sasson2014zerocash}, as well as zCash blog\cite{zcashzksnarks} and protocol\cite{zcashprotocol}. % cite Pinocchio, Groth, zCash blog posts, articles by Vitali Buterin
 
 \subsection{Arithmetic Circuit}
 
@@ -83,9 +85,9 @@ $$ A(x) \cdot B(x) - C(x) = H(x) \cdot T(x) $$
 
 \subsection{Pinocchio Protocol}
 
-This section presumes basic (operational) knowledge of elliptic curves and pairings, which can be found in APPENDIX.\\
+This section presumes basic (operational) knowledge of elliptic curves and pairings. In his articles Buterin provides a decent, albeit non-technical, introduction to both elliptic curves and pairings\cite{buterin1, buterin2, buterin3}. For short black-box treatment of different cryptographic pairings, consult \cite{galbraith2008pairings}. Readers looking for a more textbook introduction to pairings, should read \cite{costello2012pairings}.\\
 \\
-The simplest way to verify that all checks that the circuit, or QAP, performs are satisfied, would be to reveal all values. However, that would leak sensitive information such as private key, available funds, transferred ZEC\dots Providing just a polynomial divisible by T(x) would be meaningless, because it could have been forged. The primitive we need should provide us with a way to check that the polynomial was constructed in a specific way, while letting us verify that it is indeed divisible by T(x). Pinocchio protocol uses  pairings (bilinear maps) to achieve that goal. In the text, we use type III pairing: $e: \mathbb{G}_1 \times \mathbb{G}_2 \to \mathbb{G}_T$. Pairing is denoted by a two-argument function $e(P_{G_1}, P_{G_2})$. $G_1, G_2$ and $G_T$ represent generators of groups $\mathbb{G}_1$, $\mathbb{G}_2$ and $\mathbb{G}_T$, respectively. Group operations in groups $\mathbb{G}_1$ and $\mathbb{G}_2$ are represented in the additive notation (+ for the operation, and $[n]P$ for scalar multiplication), while group $\mathbb{G}_T$ uses multiplicative notation ($\cdot$ for the operation, and $P^n$ for scalar exponentiation).\\
+The simplest way to verify that all checks that the circuit, or QAP, performs are satisfied, would be to reveal all values. However, that would leak sensitive information such as private key, available funds, transferred ZEC\dots Providing just a polynomial divisible by T(x) would be meaningless, because it could have been forged. The primitive we need should provide us with a way to check that the polynomial was constructed in a specific way, while letting us verify that it is indeed divisible by T(x). Pinocchio protocol uses  pairings (bilinear maps) to achieve that goal. In the text, we use type III pairing: $e: \mathbb{G}_1 \times \mathbb{G}_2 \to \mathbb{G}_T$. Pairing is denoted by a two-argument function $e(P_{G_1}, P_{G_2})$. $G_1, G_2$ and $G_T$ represent generators of groups $\mathbb{G}_1$, $\mathbb{G}_2$ and $\mathbb{G}_T$, respectively. All group operations are represented in the additive notation to stress that we are working with elliptic curve points (+ for the operations in $\mathbb{G}_1$ and $\mathbb{G}_2$, $\oplus$ for $\mathbb{G}_T$ , and $[n]P$ for scalar multiplication for all groups).\\
 \\
 Pairings can be used to check whether two pairs of elliptic curve points (A and B, C and D) have the same quotients:
 
@@ -132,11 +134,11 @@ Finally, they need to prove that the polynomial $A(x) \cdot B(x) - C(x)$ is real
 
 $$ e(\pi_a, \pi_b) \stackrel{?}{=} e(\pi_c, G_2) \oplus e(P_H, [\rho_A \rho_B T(t)]G_2) $$
 
-We will now discuss the simplifications made to the proof. The following structure works for proofs without any input wirtes. Adding input wires to the circuit is straightforward. It involves adding several more terms to the CRS, and adding these terms to $\pi_A$ during the linearity and divisibility pairing check. The reader can check the full version of Pinocchio zk-SNARKs in PAPER, or just the review in BEN-SASSON PAPER.\\
+We will now discuss the simplifications made to the proof. The following structure works for proofs without any input wirtes. Adding input wires to the circuit is straightforward. It involves adding several more terms to the CRS, and adding these terms to $\pi_A$ during the linearity and divisibility pairing check. The reader can check the full version of Pinocchio zk-SNARKs in \cite{parno2013pinocchio}, or just the review in \cite{ben2014succinct}.\\
 \\
-There is another important place where we deviate from Buterin's articles - pairing used. We use asymmetric pairing, instead of symmetric pairing used by Buterin. Asymmetric pairings are more efficient than symmetric pairings, and make discussion of Groth's results in the subsequent section more understandable.\\
+There is another important place where we deviate from Buterin's articles - pairing used. We use asymmetric pairing, instead of symmetric pairing used by Buterin. Asymmetric pairings are more efficient than symmetric ones, and make Groth's results in the \ref{grothexpl} fit the context and easier to understand.\\
 \\
-The final remark has to do with the choice of groups $\mathbb{G}_1$ and $\mathbb{G}_2$ for the points provided by the prover. All points beside $\pi_B$ are elements of $\mathbb{G}_1$. Elements of $\mathbb{G}_1$ are smaller than the elements of $\mathbb{G}_2$, so Pinocchio protocol takes advantage of this to reduce the size of the proof. $\pi_B$ has to be in $\mathbb{G}_2$ due to the pairing check where we calculate $e(\pi_A, \pi_B)$. This brings us to the proof consisting of 7 $\mathbb{G}_1$ and 1 $\mathbb{G}_2$ element.
+The final remark has to do with the choice of groups $\mathbb{G}_1$ and $\mathbb{G}_2$ for the points provided by the prover. All points beside $\pi_B$ are elements of $\mathbb{G}_1$. Elements of $\mathbb{G}_1$ are smaller than the elements of $\mathbb{G}_2$. Pinocchio protocol takes advantage of this to reduce the size of the proof by assign as many points as possible to $\mathbb{G}_1$. $\pi_B$ is the only point that has to be in $\mathbb{G}_2$ due to the pairing check where we calculate $e(\pi_A, \pi_B)$. This brings us to the proof consisting of 7 $\mathbb{G}_1$ and 1 $\mathbb{G}_2$ element.
 
 \section{Sapling Update}
 
@@ -145,15 +147,16 @@ zCash is undergoing continuous development. The most substantial update to date 
 
 \subsection{New Curve: BLS12-381}
 
-The old curve BN254 saw its security level reduced after a new algorithm was discovered. Increasing the security parameters for this curve would reduce the performance of FFT (for polynomial division) and multiexponentiation steps of proof generation. A new curve was selected - BLS12-381. The embedding degrees of this curve is 12. Other parameters of this curve are its group order $r \approx 2^255$ and the base field characteristic $q \approx 2^381$.
+The old curve BN254 saw its security level reduced after a new algorithm was discovered \cite{zcashbls12381}. Increasing the security parameters for this curve would reduce the performance of FFT (for polynomial division) and multiexponentiation steps of proof generation. A new curve was selected - BLS12-381. The embedding degrees of this curve is 12. Other parameters of this curve are its group order $r \approx 2^{255}$ and the base field characteristic $q \approx 2^{381}$.
 
 \subsection{New Commitment Scheme: Pederson Commitments and JubJub}
 
-zCash zk-SNARK circuit needs to compute and verify commitments to notes. SHA256 compression function was used as the commitment scheme. Unfortunately, this also bloated the circuit quite a bit. Moving to BLS12-381, whose group order is $r \approx 2^255$ was used to introduce a new commitment scheme: Pederson commitments over a custom Edwards curve Ed255-JubJub. The field underlaying JubJub can fit in the scalar field of BLS12-381 and be calculated in the circuit quite efficiently.
+zCash zk-SNARK circuit needs to compute and verify commitments to notes. SHA256 compression function was used as the commitment scheme. Unfortunately, this also bloated the circuit quite a bit. Moving to BLS12-381, whose group order is $r \approx 2^{255}$ was used to introduce a new commitment scheme: Pederson commitments over a custom Edwards curve Ed255-JubJub\cite{zcashjubjub}. The field underlaying JubJub can fit in the scalar field of BLS12-381 and be calculated in the circuit quite efficiently.
 
 \subsection{New Proving System}
+\label{grothexpl}
 
-While Pinocchio is secure, its biggest problem is the proof size. Instead of using 7 $\mathbb{G}_1$ elements, and one $\mathbb{G}_2$ element, Jens Groth improved upon the previous work to use only 2 $\mathbb{G}_1$ elements and a $\mathbb{G}_2$ element. He also proved that at least one element needs to be in each group for linear circuit checks to be secure.\\
+While Pinocchio is secure, its biggest problem is the proof size. Instead of using 7 $\mathbb{G}_1$ elements, and one $\mathbb{G}_2$ element, Jens Groth\cite{groth2016size} improved upon the previous work to use only 2 $\mathbb{G}_1$ elements and a $\mathbb{G}_2$ element. He also proved that at least one element needs to be in each group for linear circuit checks to be secure.\\
 \\
 This achieved by the prover providing:
 
@@ -165,8 +168,8 @@ The verifier needs to check:
 
 $$ e(\pi_A, \pi_B) \stackrel{?}{=} e(\alpha G_1, \beta G_2) \oplus e(\pi_C, \delta G_2) $$
 
-Groth's zk-SNARK is also a bit simplified and doesn't include inputs to the circuit. Constants $\alpha, \beta, \delta, r, s, t$ are random secrets generated during the generation of CRS. Polynomials A(x), B(x), C(x), H(x), and T(x) are defined in the same way as in the Pinocchio protocol.
+Groth's zk-SNARK has been a bit simplified here and doesn't include inputs to the circuit. Constants $\alpha, \beta, \delta, r, s, t$ are random secrets generated during the generation of CRS. Polynomials A(x), B(x), C(x), H(x), and T(x) are defined in the same way as in Pinocchio\cite{parno2013pinocchio} protocol.
 
 \subsection{Rust Implementation}
 
-Rust was imagined as a memory-safe and thread-safe low-level programming language. Switching to a new curve required the code for cryptography to be rewritten. This was done in Rust, to improve the security of zCash. Furthermore, new CRS was needed for Groth's proving system. The program for the ceremony was also written in Rust, and took advantage of secure multi-party computation. 87 people contributed in the first (circuit-agnostic) phase, and over 90 took part in the second phase.
+Rust \cite{rustlang} was imagined as a memory-safe and thread-safe low-level programming language. Switching to a new curve required the code for cryptography to be rewritten. This was done in Rust to improve the security of zCash\cite{zcashbellman}. Furthermore, new CRS was needed for Groth's proving system. The program for the ceremony was also written in Rust and took Implemented secure multi-party computation. 87 people contributed in the first (circuit-agnostic) phase, and over 90 took part in the second phase\cite{zcashparamgen}.

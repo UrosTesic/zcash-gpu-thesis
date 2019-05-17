@@ -27,7 +27,7 @@ Integrated GPUs performed poorly when compared to CPUs and discrete GPUs. This r
 \\
 \subsection{Processor Word Length - 32 vs 64}
 
-As we concluded in section \ref{wholeproof}, processor bitness plays an important role in zk-SNARK performance. With GPUs, this effect is further amplified by the memory hierarchy. All of today's GPUs are still clusters of 32-bit RISC cores operating in unison. Small word length means that these cores need to execute several times more instructions than CPUs running equivalent code.\\
+As we concluded in section \ref{wholeproof}, processor word length plays an important role in zk-SNARK performance. With GPUs, this effect is further amplified by the memory hierarchy. All of today's GPUs are still clusters of 32-bit RISC cores operating in unison. Small word length means that these cores need to execute several times more instructions than CPUs running equivalent code.\\
 
 \subsection{Branch Divergence}
 
@@ -37,4 +37,10 @@ However, profiling on our ATI card showed thread convergence rate of 85\%. Impro
 
 \subsection{Inlining, Loops and Constants}
 
-While functions are considered good practice on CPUs, using them on GPUs can significantly hinder performance. Function calls require a call stack, just like on CPUs. Unfortunately, this stack
+While functions are considered good practice on CPUs, using them on GPUs can significantly hinder performance. Function calls require a call stack. Unfortunately, this stack is stored in global memory. For small kernels this isn't a problem because stack can be cached. However, our kernels have elliptic curve points as arguments, so the stack is too big to fit in cache. Another problem is that Pippinger's algorithm requires an array of elliptic curve points with random access. Kernel disassembly of NVIDIA code showed that these arrays are stored on stack.\\
+\\
+Inlining function calls and unwrapping loops reduces divergence and removes the stack. However, it substantially increases the size of code. This,combined with 32-bit registers, results in code that is too large to fit in instruction cache, incurring a performance penalty. Analysis of ATI disasembly shows that the kernels were around 90 KB in size, while the instruction cache has only 30 KB. NVIDIA compiler actively tried to prevent code explosion by keeping the functions, even though they had been marked inline. Unfortunately, this resulted in a large call stack.\\
+\\
+OpenCL uses global memory to store constants. Usually, they can be cached, so performance penalty doesn't need to be high. However, if the kernel has a lot of memory traffic, constants will be pushed out of the cache, and will be fetched every time they are used. To prvent this, we used macros in place of variables, hoping that compilers will use immediate load instructions instead of memory reads. Unfortunately, both NVIDIA and ATI compilers detected constants and put them in global memory.\\
+\\
+All of these things, combined with high register usage of kernels (more than 160 registers on NVIDIA, 256 on ATI), results in high memory traffic for Pippinger's algorithm on GPUs. FIGURE shows data from ATI profiler - vector ALU usage and memory unit usage for binary method and Pippinger's algorithm. Even though Pippinger's algorithm is faster, it barely uses ALU and has relatively high memory usage. CPUs can run the same algorithm with much larger array sizes without incurring a performance penalty, leading to better performance.
