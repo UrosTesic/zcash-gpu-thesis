@@ -11,11 +11,11 @@
 \section{Test Preparation}
 
 \subsection{Hardware}
-The CPU used for testing desktop performance is \textbf{Intel i7 7900HQ} @ 2.80 GHz with 4 cores (8 virtual cores). It is 7th generation 64-bit Intel processor with SSE, SSE2, SSE3, SSSE3, SSE4\_1, SSE4\_2, AVX and AVX2 extensions. Both 32-bit and 64-bit code was tested on this CPU, compiled using Rust compiler with corresponding targets. Operating system was Ubuntu 18.10.\\
+The CPU used for testing desktop performance is \textbf{Intel i7 7700HQ} @ 2.80 GHz with 4 cores (8 virtual cores). It is 7th generation 64-bit Intel processor with SSE, SSE2, SSE3, SSSE3, SSE4\_1, SSE4\_2, AVX and AVX2 extensions. Both 32-bit and 64-bit code was tested on this CPU, compiled using Rust compiler with corresponding targets. Operating system running is Ubuntu 18.10.\\
 \\
-For testing on mobile devices, we used \textbf{Samsung S9's Exynos} processor. It has 8 cores: 4 cores run at 2.7 GHz, and the other four at 1.7 GHz. Both 32-bit and 64-bit code was tested on this processor, using corresponding targets for the Rust compiler, and Android NDK (\texttt{armv7a-linux-androideabi16} for 32-bit code, and \texttt{aarch64-linux-android21} for 64-bit code).\\
+For testing on mobile devices, we used \textbf{Samsung S9's Exynos} processor. It has 8 cores: 4 cores run at 2.9 GHz, and the other four at 1.9 GHz. Both 32-bit and 64-bit code was tested on this processor, using corresponding targets for the Rust compiler, and Android NDK (\texttt{armv7a-linux-androideabi16} for 32-bit code, and \texttt{aarch64-linux-android21} for 64-bit code).\\
 \\
-\textbf{Intel HD Graphics 630} is a GPU integrated with 7900HQ. It has 24 processing units working at a frequency of 350 MHz during normal operation, and 1.1 GHz burst frequency. It has access to system RAM. NEO Linux drivers were used.\\
+\textbf{Intel HD Graphics 630} is a GPU integrated with 7700HQ. It has 24 processing units working at a frequency of 350 MHz during normal operation, and 1.1 GHz burst frequency. It has access to system RAM. NEO Linux drivers were used.\\
 \\
 \textbf{Mali-G72 MP18} is a GPU integrated with Samsung's Exynos processor on Galaxy S9. It has 18 processing units working at 850 MHz. It has access to system RAM.\\
 \\
@@ -29,13 +29,13 @@ Considering that only 6\% of OpenCL papers test the program on 3 or more differe
 
 \subsubsection{NVIDIA}
 \textbf{Setup}\\
-NVIDIA drivers officially support only OpenCL 1.2. Recently, there has been some progress towards the more modern standard, with NVIDIA quietly enabling OpenCL 2.0. However, NVIDIA has been pushing its GPGPU solution CUDA over OpenCL, and OpenCL is expected to perform slightly slower than equivalent CUDA code\cite{fang2011comprehensive, karimi2010performance}. This is also visible in dropping support for OpenCL code profiling that was present in older driver versions. However, we've managed to get static kernel data and assembly by dumping the high-level assembly (PTX file), and compiling it for the architecture that our card supports (Compute Capability 6.1). CUDA occupancy calculator was then used to estimate how many threads' states could be saved at the same time.\\\\
+NVIDIA drivers officially support only OpenCL 1.2. Recently, there has been some progress towards the more modern standard, with NVIDIA quietly enabling OpenCL 2.0. However, NVIDIA has been pushing its GPGPU solution CUDA over OpenCL, and OpenCL is expected to perform slightly slower than equivalent CUDA code \cite{fang2011comprehensive, karimi2010performance}. This is also visible in dropping support for OpenCL code profiling that was present in older driver versions. However, we've managed to get static kernel data and assembly by dumping the high-level assembly (PTX file), and compiling it for the architecture that our card supports (Compute Capability 6.1). CUDA occupancy calculator was then used to estimate how many threads' states could be saved at the same time.\\\\
 \textbf{Runtime Bugs}\\\\
-There was one bug in the compiler that we didn't expect. When compiling a kernel for 4-bit Pippenger, if we loaded only the needed portion of the exponent, we would get \texttt{CL\_OUT\_OF\_RESOURCES} error. The same kernel worked without a problem on Intel's GPU. The error was fixed by reading the entire exponent from global memory, instead of only reading the integer that we need.
+There was one bug in the compiler that we didn't expect. When compiling a kernel for 4-bit Pippenger, if we loaded only the needed portion of the exponent, we would get \texttt{CL\_OUT\_OF\_RESOURCES} error. The same kernel worked without a problem on Intel's GPU. The error was fixed by reading the entire exponent structure from global memory, instead of only reading the integer that we needed.
 
 \subsubsection{Intel}
 \textbf{Setup}\\\\
-Intel's NEO driver supports OpenCL 2.1. Due to extremely slow execution speed, we haven't profiled code executing on this GPU. Running longer kernels (more than ~10s) required us to disable the watchdog timer by writing N to \texttt{/sys/module/i915/parameters/enable\_hangcheck}. Unfortunately, because Intel was the main display device, this caused our device to freeze until kernels finished execution.\\\\
+Intel's NEO driver supports OpenCL 2.1. Due to extremely slow execution speed, we haven't profiled code executing on this GPU. Running longer kernels (more than ~10s) required us to manually disable the watchdog timer in the kernel. Unfortunately, because Intel was the main display device, this caused our device to freeze until kernels finished execution.\\\\
 \textbf{Runtime Bugs}\\\\
 The biggest issue was encountered when we manually decompiled the square-and-multiply kernel (255 iteration loop). Intel kernel kept outputting wrong result, but adding \texttt{printf} somehow fixed this problem. NVIDIA GPU outputted the correct result for the same code without any issues. Older Intel driver didn't support \texttt{printf} for 64-bit integers on Ubuntu, but switching to NEO solved this problem. 
 
@@ -45,11 +45,11 @@ Mali supports OpenCL 2.1. Compiling OpenCL code for Samsung Galaxy S9 required u
 \textbf{Runtime Bugs}\\\\
 Unfortunately, compilation of OpenCL kernel results in a \texttt{Segmentation Fault} after a couple of minutes for the 32-bit version. Another problem that we encountered with Mali is the unexpected use of OpenCL API. All other vendors compile the kernel when we call \texttt{clBuildProgram}, while Mali does this during the kernel call. While testing our kernels, we noticed that the application may get killed if the kernel takes too long.
 
-\subsubsection{ATI}
+\subsubsection{AMD}
 \textbf{Setup}\\\\
-ATI has the best support for OpenCL of all vendors tested. The only problem we encountered is that profiler GUI wouldn't start, but CLI version had no issues.\\\\
+AMD has the best support for OpenCL of all vendors tested. The only problem we encountered is that profiler GUI wouldn't start, but CLI version had no issues.\\\\
 \textbf{Runtime Bugs}\\\\
-We haven't encountered any bugs with ATI cards.
+We haven't encountered any bugs with AMD cards.
 
 \section{Tests}
 
@@ -77,4 +77,4 @@ We decided to benchmark our multiexponentiation algorithms on group G1, with ~13
 \\
 FIGURE\\
 \\
-The data for integrated GPUs (Intel and Mali) shown in FIGURE is capped at 6 seconds. The actual times are much higher - several minutes for Mali and 10.4 second for the best Intel kernel. NVIDIA and ATI perform better, but still not at the level of CPUs. Square-and-multiply takes the most time, followed by windowed-square-and-multiply. Variants of Pippenger's algorithm are the fastest, with 4-bit Pippenger with CPU reduction taking the best spot. Unfortunately, even it fails to overtake multiexponentiation on Intel i7.
+The data for integrated GPUs (Intel and Mali) shown in FIGURE is capped at 6 seconds. The actual times are much higher - several minutes for Mali and 10.4 second for the best Intel kernel. NVIDIA and AMD perform better, but still not at the level of CPUs. Square-and-multiply takes the most time, followed by windowed-square-and-multiply. Variants of Pippenger's algorithm are the fastest, with 4-bit Pippenger with CPU reduction taking the best spot. Unfortunately, even it fails to overtake multiexponentiation on Intel i7.
