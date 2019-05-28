@@ -44,7 +44,7 @@ ret
         \label{fig:mulcomp}
 \end{figure}
 \\
-The stress test showed that phones are prone to overheat, and throttle the computation of proofs if under heavy load. This happens after several proofs have been computed, even if nothing else is running on the device. Laptops don't show this behavior due to the fans disperse the heat. Note that the test was performed on a laptop with GPU turned off.
+\noindent The stress test showed that phones are prone to overheat, and throttle the computation of proofs if under heavy load. This happens after several proofs have been computed, even if nothing else is running on the device. Laptops don't show this behavior due to the fans disperse the heat. Note that the test was performed on a laptop with GPU turned off.
 
 \section{FFT and Multiexp}
 
@@ -54,7 +54,7 @@ The results of this test showed no surprising facts. Multiexponentiation and FFT
 
 Integrated GPUs performed poorly when compared to CPUs and discrete GPUs. This rules out the use of mobile GPUs for accelerating zk-SNARKs. If we take a look at frequencies and core counts of discrete and integrated GPUs, it is clear that Intel and Mali GPUs will be at least an order of magnitude slower than NVIDIA and AMD cards. The actual surprise is that not even discrete GPUs can beat CPUs running Pippenger's algorithm. In this section, we explain multiple contributing factors.\\
 \\
-\subsection{Processor Word Length - 32 vs 64}
+\subsection{Processor Word Length -- 32 vs 64}
 
 As we concluded in Section \ref{wholeproof}, processor word length plays an important role in zk-SNARK performance. With GPUs, this effect is further amplified by the memory hierarchy. All of today's GPUs are still clusters of 32-bit RISC cores operating in unison \cite{nvidiapascalinstructions, amdpolarisinstructions}. Small word length means that these cores need to execute several times more instructions than CPUs running equivalent code. It is interesting to note that GPUs are optimized towards floating-point numbers, leading to lower throughput for integer operations \cite{nvidiathroughput}.\\
 
@@ -78,10 +78,10 @@ OpenCL uses global memory to store constants. Usually, they can be cached, so th
     \label{fig:profiler}
 \end{figure}
 
-All of these things, combined with high register usage of kernels (more than 160 registers on NVIDIA, 256 on AMD), results in high memory traffic and low occupancy for Pippenger's algorithm on GPUs. Figure \ref{fig:profiler} shows data from AMD profiler - vector ALU and memory unit usage for the binary method and Pippenger's algorithm. Even though Pippenger's algorithm is faster, it barely uses ALU, compared to memory. CPUs can run the same algorithm with much larger array sizes without incurring a performance penalty, leading to better performance.
+\noindent All of these things, combined with high register usage of kernels (more than 160 registers on NVIDIA, 256 on AMD), results in high memory traffic and low occupancy for Pippenger's algorithm on GPUs. Figure \ref{fig:profiler} shows data from AMD profiler - vector ALU and memory unit usage for the binary method and Pippenger's algorithm. Even though Pippenger's algorithm is faster, it barely uses ALU, compared to memory. CPUs can run the same algorithm with much larger array sizes without incurring a performance penalty, leading to better performance.
 
 \subsection{Performance Gains}
 
-It is possible to attain a speed-up of 25-30\% by running CPU and GPU together and distributing work between them. This scheme would involve putting (a smaller) part of the exponent on GPU, exponentiating the rest on CPU, and combining the results. Unfortunately, due to different ratio's of CPU and GPU power, we would need to maintain either a table for most common combinations or run a test once to determine the optimal ratio.\\
+It is possible to attain a speed-up of 25-30\% by running CPU and GPU together and distributing work between them. This scheme would involve putting (a smaller) part of the exponent on GPU, exponentiating the rest on CPU, and combining the results. Unfortunately, due to different ratio's of CPU and GPU power, we would need to maintain either a table for most common combinations or run a test first to determine the optimal ratio.\\
 \\
-However, the gains are minimal even with more powerful GPUs. Graphic cards draw a lot of power, heat up the machine and increase fan noise. This scheme would require us to maintain two versions of the same code and would be economical only if we already own a strong GPU. If we want to buy a machine specifically for zCash, it would be more economical to buy a processor with more cores.
+However, the gains are minimal even with more powerful GPUs. Graphic cards draw a lot of power, heat up the machine and increase fan noise. This scheme would require us to maintain two versions of the same code and would be economical only if we already own a strong GPU. If we want to buy a machine specifically for zCash, it would make more sense to buy a processor with more cores.

@@ -55,6 +55,26 @@ headsepline, % Uncomment to get a line under the header
 \usepackage[]{algpseudocode}
 
 \usepackage[T1]{fontenc}
+\usepackage{listings}
+
+\usepackage[]{amsthm}
+
+\usepackage[final]{pdfpages}
+
+\theoremstyle{definition}
+\newtheorem{exmp}{Example}[section]
+
+\lstdefinelanguage
+   [x64]{Assembler}     % add a "x64" dialect of Assembler
+   [x86masm]{Assembler} % based on the "x86masm" dialect
+   % with these extra keywords:
+   {morekeywords={CDQE,CQO,CMPSQ,CMPXCHG16B,JRCXZ,LODSQ,MOVSXD, %
+                  POPFQ,PUSHFQ,SCASQ,STOSQ,IRETQ,RDTSCP,SWAPGS, %
+                  rax,rdx,rcx,rbx,rsi,rdi,rsp,rbp, %
+                  r8,r8d,r8w,r8b,r9,r9d,r9w,r9b, %
+                  r10,r10d,r10w,r10b,r11,r11d,r11w,r11b, %
+                  r12,r12d,r12w,r12b,r13,r13d,r13w,r13b, %
+                  r14,r14d,r14w,r14b,r15,r15d,r15w,r15b}} % etc.
 
 
 \makeatletter
@@ -79,7 +99,7 @@ headsepline, % Uncomment to get a line under the header
 %	THESIS INFORMATION
 %----------------------------------------------------------------------------------------
 
-\thesistitle{Practical zk-SNARKS} % Your thesis title, this is used in the title and abstract, print it elsewhere with \ttitle
+\thesistitle{GPU Accelerated zk-SNARKs} % Your thesis title, this is used in the title and abstract, print it elsewhere with \ttitle
 \supervisor{Prof. Dr. Sr\dj an \v{C}apkun} % Your supervisor's name, this is used in the title page, print it elsewhere with \supname
 \examiner{} % Your examiner's name, this is not currently used anywhere in the template, print it elsewhere with \examname
 \degree{MSc in Computer Science} % Your degree name, this is used in the title page and abstract, print it elsewhere with \degreename
@@ -87,11 +107,11 @@ headsepline, % Uncomment to get a line under the header
 \addresses{} % Your address, this is not currently used anywhere in the template, print it elsewhere with \addressname
 
 \subject{Computer Science} % Your subject area, this is not currently used anywhere in the template, print it elsewhere with \subjectname
-\keywords{} % Keywords for your thesis, this is not currently used anywhere in the template, print it elsewhere with \keywordnames
-\university{\href{http://www.ethz.ch}{University Name}} % Your university's name and URL, this is used in the title page and abstract, print it elsewhere with \univname
-\department{\href{http://department.university.com}{D-INFK}} % Your department's name and URL, this is used in the title page and abstract, print it elsewhere with \deptname
-\group{\href{http://researchgroup.university.com}{System Security Group}} % Your research group's name and URL, this is used in the title page, print it elsewhere with \groupname
-\faculty{\href{http://faculty.university.com}{Faculty Name}} % Your faculty's name and URL, this is used in the title page and abstract, print it elsewhere with \facname
+\keywords{zk-SNARKs, zCash, OpenCL, GPU, multiexponentiation, elliptic curves, scalar multiplication} % Keywords for your thesis, this is not currently used anywhere in the template, print it elsewhere with \keywordnames
+\university{\href{https://www.ethz.ch}{ETH Z\"urich}} % Your university's name and URL, this is used in the title page and abstract, print it elsewhere with \univname
+\department{\href{https://inf.ethz.ch}{D-INFK}} % Your department's name and URL, this is used in the title page and abstract, print it elsewhere with \deptname
+\group{\href{https://www.syssec.ethz.ch/}{System Security Group}} % Your research group's name and URL, this is used in the title page, print it elsewhere with \groupname
+\faculty{}{} % Your faculty's name and URL, this is used in the title page and abstract, print it elsewhere with \facname
 
 \AtBeginDocument{
 \hypersetup{pdftitle=\ttitle} % Set the PDF's title to your title
@@ -129,14 +149,17 @@ headsepline, % Uncomment to get a line under the header
 \begin{minipage}[t]{0.4\textwidth}
 \begin{flushright} \large
 \emph{Supervisor:} \\
-\href{http://www.jamessmith.com}{\supname} % Supervisor name - remove the \href bracket to remove the link  
+\href{}{\supname} \\ \hfill \break % Supervisor name - remove the \href bracket to remove the link  
+\emph{Advisors:} \\ 
+	{Karl W\"ust} \\
+	{Moritz Schnedier}
 \end{flushright}
-\end{minipage}\\[3cm]
+\end{minipage}\\[6cm]
+
  
 \vfill
 
-\large \textit{A thesis submitted in fulfillment of the requirements\\ for the degree of \degreename}\\[0.3cm] % University requirement text
-\textit{in the}\\[0.4cm]
+
 \groupname\\\deptname\\[2cm] % Research group name and department name
  
 \vfill
@@ -153,23 +176,9 @@ headsepline, % Uncomment to get a line under the header
 %----------------------------------------------------------------------------------------
 
 \begin{declaration}
-\addchaptertocentry{\authorshipname} % Add the declaration to the table of contents
-\noindent I, \authorname, declare that this thesis titled, \enquote{\ttitle} and the work presented in it are my own. I confirm that:
-
-\begin{itemize} 
-\item This work was done wholly or mainly while in candidature for a research degree at this University.
-\item Where any part of this thesis has previously been submitted for a degree or any other qualification at this University or any other institution, this has been clearly stated.
-\item Where I have consulted the published work of others, this is always clearly attributed.
-\item Where I have quoted from the work of others, the source is always given. With the exception of such quotations, this thesis is entirely my own work.
-\item I have acknowledged all main sources of help.
-\item Where the thesis is based on work done by myself jointly with others, I have made clear exactly what was done by others and what I have contributed myself.\\
-\end{itemize}
- 
-\noindent Signed:\\
-\rule[0.5em]{25em}{0.5pt} % This prints a line for the signature
- 
-\noindent Date:\\
-\rule[0.5em]{25em}{0.5pt} % This prints a line to write the date
+   \begin{center}
+      \includegraphics[height=.95\textheight]{Chapters/declaration.pdf}
+   \end{center}
 \end{declaration}
 
 \cleardoublepage
@@ -181,7 +190,13 @@ headsepline, % Uncomment to get a line under the header
 
 \begin{abstract}
 \addchaptertocentry{\abstractname} % Add the abstract to the table of contents
-The Thesis Abstract is written here (and usually kept to just this page). The page is kept centered vertically so can expand into the blank space above the title too\ldots
+Cryptocurrencies promise a new age of money and payment systems. By distributing trust they prevent any party from controlling the flow of resources. However, this comes at a price -- most cryptocurrencies rely on a public ledger. This puts user's privacy at risk because anyone can monitor and track transactions.\\
+\\
+Cryptocurrency zCash provides completely encrypted transactions by using zero-knowledge proofs (zk-SNARKs) to validate them. Unfortunately, zk-SNARKs are expensive to compute. This limits their widespread adoption on computationally limited devices such as mobile phones. They are also complex to implement, preventing the development of hardware wallets for zCash.\\
+\\
+In this thesis, we take a look at porting computationally expensive part of zk-SNARKs to a GPU to take full advantage of the available processing power. We also explain the difficulties involved in developing OpenCL code meant to be executed on GPUs from multiple vendors.\\
+\\
+\textbf{Keywords: }\keywordnames
 \end{abstract}
 
 %----------------------------------------------------------------------------------------
@@ -190,9 +205,11 @@ The Thesis Abstract is written here (and usually kept to just this page). The pa
 
 \begin{acknowledgements}
 \addchaptertocentry{\acknowledgementname} % Add the acknowledgements to the table of contents
-I'd like to thank my mentors Karl W\:{u}st and Moritz Schneider for meeting with me every week, discussing the results, helping me shape this thesis and setup the necessary hardware. I'd also like to thank my supervisor Professor Sr\-{d}an \v{C}apkun for teaching me about computer security, even though I'll be wearing a tin-foil hat for the rest of my life. This thesis wouldn't be possible with MSOP scholarship from ETHZ, which enabled me to live and study in Z\:{u}rich.\\
+I'd like to thank my advisors Karl W\"{u}st and Moritz Schneider for meeting with me every week, discussing the results and helping me shape this thesis. Their patience has been invaluable. I'd also like to thank my supervisor Professor Sr\dj an \v{C}apkun for teaching me computer security, even though I'll be wearing a tin-foil hat for the rest of my life.\\
 \\
-I'd also like to thank my friends and family 
+Finally, I am grateful to my family and friends for supporting me during the studies, and tolerating me while I was studying for my exams.\\
+\\
+This thesis wouldn't be possible without MSOP scholarship from ETHZ, which enabled me to live and study in Z\"{u}rich.\\
 \end{acknowledgements}
 
 %----------------------------------------------------------------------------------------
@@ -203,7 +220,7 @@ I'd also like to thank my friends and family
 
 \listoffigures % Prints the list of figures
 
-\listoftables % Prints the list of tables
+%\listoftables % Prints the list of tables
 
 
 
@@ -211,7 +228,7 @@ I'd also like to thank my friends and family
 %	DEDICATION
 %----------------------------------------------------------------------------------------
 
-\dedicatory{For/Dedicated to/To my\ldots} 
+%\dedicatory{For/Dedicated to/To my\ldots} 
 
 %----------------------------------------------------------------------------------------
 %	THESIS CONTENT - CHAPTERS
@@ -231,18 +248,19 @@ I'd also like to thank my friends and family
 \include{Chapters/Chapter5}
 \include{Chapters/Chapter6}  
 \include{Chapters/Chapter7}
-\include{Chapters/Chapter8} 
+\include{Chapters/Chapter8}
+\include{Chapters/Chapter9} 
 
 %----------------------------------------------------------------------------------------
 %	THESIS CONTENT - APPENDICES
 %----------------------------------------------------------------------------------------
 
-\appendix % Cue to tell LaTeX that the following "chapters" are Appendices
+%\appendix % Cue to tell LaTeX that the following "chapters" are Appendices
 
 % Include the appendices of the thesis as separate files from the Appendices folder
 % Uncomment the lines as you write the Appendices
 
-\include{Appendices/AppendixA}
+%\include{Appendices/AppendixA}
 %\include{Appendices/AppendixB}
 %\include{Appendices/AppendixC}
 

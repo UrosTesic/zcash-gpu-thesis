@@ -11,7 +11,7 @@
 \section{Test Preparation}
 
 \subsection{Hardware}
-The CPU used for testing desktop performance is \textbf{Intel i7 7700HQ} @ 2.80 GHz with 4 cores (8 virtual cores) \cite{intel7700hq}. It is 7th generation 64-bit Intel processor with SSE, SSE2, SSE3, SSSE3, SSE4\_1, SSE4\_2, AVX and AVX2 extensions. Both 32-bit and 64-bit code was tested on this CPU, compiled using Rust compiler with corresponding targets. The operating system running is Ubuntu 18.10.\\
+The CPU used for testing desktop performance is an \textbf{Intel i7 7700HQ} @ 2.80 GHz with 4 cores (8 virtual cores) \cite{intel7700hq}. It is a 7th generation 64-bit Intel processor with SSE, SSE2, SSE3, SSSE3, SSE4\_1, SSE4\_2, AVX and AVX2 extensions. Both 32-bit and 64-bit code was tested on this CPU, compiled using Rust compiler with corresponding targets. The operating system running is Ubuntu 18.10.\\
 \\
 For testing on mobile devices, we used \textbf{Samsung S9's Exynos} processor. It has 8 cores: 4 cores run at 2.9 GHz, and the other four at 1.9 GHz \cite{exynos9810}. Both 32-bit and 64-bit code was tested on this processor, using corresponding targets for the Rust compiler, and Android NDK (\texttt{armv7a-linux-androideabi16} for 32-bit code, and \texttt{aarch64-linux-android21} for 64-bit code).\\
 \\
@@ -68,7 +68,7 @@ This test involved dumping the data from the actual spending proof generation an
     \label{fig:spendingproof}
 \end{figure}
 
-As we see in Figure \ref{fig:spendingproof}, 32-bit code is significantly slower than 64-bit code. Also, 64-bit ARM code is comparable in performance with x86-64. There is also a slightly larger drop in average performance during the stress test for ARM than for Intel. However, Intel performance was consistent, while the worst-case ARM performance dropped down to 6.75s.
+\noindent As we see in Figure \ref{fig:spendingproof}, 32-bit code is significantly slower than 64-bit code. Also, 64-bit ARM code is comparable in performance with x86-64. There is also a slightly larger drop in average performance during the stress test for ARM than for Intel. However, Intel performance was consistent, while the worst-case ARM performance dropped down to 6.75s.
 
 \subsection{FFT and Multiexp}
 
@@ -81,7 +81,7 @@ To determine the best target for optimization we benchmarked different parts of 
     \label{fig:partsbenchmark}
 \end{figure}
 
-CPU spends the most time performing FFT and multiexponentiation. Witness generation takes several milliseconds at most. In Figure \ref{fig:partsbenchmark} we can see that multiexponentiation takes 85\% time of proof generation. This made multiexponentiation a natural target for optimization. To determine potential for parallelization, we also benchmarked single-core performance and plugged in the numbers into Amdahl's law. This gave us 88.5\% of parallel code (in theory).\\
+\noindent CPU spends the most time performing FFT and multiexponentiation. Witness generation takes several milliseconds at most. In Figure \ref{fig:partsbenchmark} we can see that multiexponentiation takes 85\% time of proof generation. This made multiexponentiation a natural target for optimization. To determine potential for parallelization, we also benchmarked single-core performance and plugged in the numbers into Amdahl's law. This gave us 88.5\% of parallel code (in theory).\\
 
 \subsection{131k Test}
 
@@ -91,4 +91,4 @@ We decided to benchmark our multiexponentiation algorithms on group G1, with ~13
     \caption{Comparison of Algorithms Implemented Running on Various Hardware}
     \label{fig:finalresults}
 \end{figure}
-The data for integrated GPUs (Intel and Mali) shown in Figure \ref{fig:finalresults} has been cut off at 6 seconds. The actual times are much higher - several minutes for Mali and 10.4 seconds for the best Intel kernel. NVIDIA and AMD perform better, but still not at the level of CPUs. Square-and-multiply takes the most time, followed by windowed-square-and-multiply. Variants of Pippenger's algorithm are the fastest, with 4-bit Pippenger with CPU reduction taking the first spot. Unfortunately, even it fails to overtake multiexponentiation on Intel i7.
+ \noindent The data for integrated GPUs (Intel and Mali) shown in Figure \ref{fig:finalresults} has been cut off at 6 seconds. The actual times are much higher -- several minutes for Mali and 10.4 seconds for the best Intel kernel. NVIDIA and AMD perform better, but still not at the level of CPUs. Square-and-multiply takes the most time, followed by windowed-square-and-multiply. Variants of Pippenger's algorithm are the fastest, with 4-bit Pippenger with CPU reduction taking the first spot. Unfortunately, even it fails to overtake multiexponentiation on Intel i7.

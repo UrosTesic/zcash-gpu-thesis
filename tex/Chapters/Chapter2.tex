@@ -10,11 +10,11 @@
 
 \section{Background}
 
-Cryptocurrencies have gained in popularity over the last couple of years. The most popular cryptocurrency is Bitcoin. However, Bitcoin is of limited use today. It cannot be used as a general currency due to the low throughput and long waiting times for the transaction to be added to the block. Its status as an anonymous currency is also disputed, resulting in 2 different cryptocurrencies being developed to fill in the void - Monero\cite{monero} and zCash \cite{zcashprotocol}.\\
+Cryptocurrencies have gained in popularity over the last couple of years. The most popular cryptocurrency is Bitcoin. However, Bitcoin is of limited use today. It cannot be used as a general currency due to the low throughput and long waiting times for the transaction to be added to the block. Its status as an anonymous currency is also disputed \cite{biryukov2014deanonymisation, de2017analysis}, resulting in 2 different cryptocurrencies being developed to fill in the void -- Monero\cite{monero} and zCash \cite{zcashprotocol}.\\
 \\
 ZCash defines two types of addresses. Transparent addresses behave the same way as Bitcoin addresses. Data resides in the public blockchain so it can be tracked the same way as with Bitcoin. However, shielded addresses reveal nothing when they are a part of the transaction. This is accomplished by encrypting the transactions and providing a zero-knowledge proof of correctness of the transaction \cite{zcashtechnology}.\\
 \\
-However, zero-knowledge proof (zk-SNARK \cite{zcashzksnarks}) requires a substantial amount of time to compute, limiting the adoption of shielded transactions on portable devices. The most computationally intensive part of zk-SNARKs is multiexponentiation. It involves multiplication of thousands of elliptic curve points by a scalar and the addition of the results. Due to its inherently parallel nature, it may be possible to gain a speed boost by using a GPU built in modern PCs and phones.
+However, the zero-knowledge proof used (zk-SNARK \cite{ben2014succinct, groth2016size}) requires a substantial amount of time to compute, limiting the adoption of shielded transactions on portable devices. The most computationally intensive part of zk-SNARKs is multiexponentiation. It involves multiplication of thousands of elliptic curve points by a scalar and the addition of the results. Due to its inherently parallel nature, it may be possible to gain a speed boost by using a GPU built in modern PCs and phones.
 
 
 

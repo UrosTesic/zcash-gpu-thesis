@@ -20,7 +20,7 @@ opacity = 0.8
 rects1 = plt.bar(index, means_alu, bar_width,
 alpha=opacity,
 color='navy',
-label='VALUBusy')
+label='VectorALUBusy')
 
 
 rects2 = plt.bar(index + bar_width, means_memory, bar_width,
