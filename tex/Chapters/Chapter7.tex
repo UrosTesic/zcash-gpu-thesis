@@ -4,6 +4,7 @@
 
 \label{Chapter7} % Change X to a consecutive number; for referencing this chapter elsewhere, use \ref{ChapterX}
 
+In this chapter analyze the results of every test. We discuss the effects of processor word width on performance, as well as the performance on mobile devices. Finally, we talk about the different factors which affected the execution time of multiexponentiation on GPUs.
 %----------------------------------------------------------------------------------------
 %	SECTION 1
 %----------------------------------------------------------------------------------------
@@ -68,7 +69,7 @@ However, profiling on our AMD card showed thread convergence rate of 85\%. Impro
 
 While functions are considered good practice on CPUs, using them on GPUs can significantly hinder performance. Function calls require a call stack. Unfortunately, this stack is stored in global memory. For small kernels, this isn't a problem because the stack can be cached. However, our kernels have elliptic curve points as arguments, so the stack is too big to fit in the cache. Another problem is that Pippenger's algorithm requires an array of elliptic curve points with random access \cite{nvidiaarrayindexing}. Kernel disassembly of NVIDIA code showed that these arrays are stored on the stack (i.e. in global memory).\\
 \\
-Inlining function calls and unwrapping loops reduces divergence and removes the stack. However, it substantially increases the size of the code. This, combined with 32-bit registers, results in code that is too large to fit in the instruction cache, incurring a performance penalty. Analysis of AMD disasembly shows that the kernels were around 90 KB in size, while the instruction cache has only 30 KB \cite{amdgcnarch}. On the other hand, NVIDIA compiler actively tried to prevent code explosion by keeping some functions intact, even though they had been marked inline. Unfortunately, this resulted in an enormous call stack.\\
+Inlining function calls and unwrapping loops reduces divergence and removes the stack. However, it substantially increases the size of the code. This, combined with 32-bit registers, results in code that is too large to fit in the instruction cache, incurring a performance penalty. Analysis of AMD disassembly shows that the kernels were around 90 KB in size, while the instruction cache has only 30 KB \cite{amdgcnarch}. On the other hand, the NVIDIA compiler actively tried to prevent code explosion by keeping some functions intact, even though they had been marked inline. Unfortunately, this resulted in an enormous call stack.\\
 \\
 OpenCL uses global memory to store constants. Usually, they can be cached, so the performance penalty doesn't need to be high. However, if the kernel has a lot of memory traffic, constants will be pushed out of the cache and will be fetched every time they are used. To prevent this, we used macros in place of variables, hoping that compilers will use immediate load instructions instead of memory reads. Unfortunately, both NVIDIA and AMD compilers detected constants and put them in global memory.
 
@@ -84,4 +85,4 @@ OpenCL uses global memory to store constants. Usually, they can be cached, so th
 
 It is possible to attain a speed-up of 25-30\% by running CPU and GPU together and distributing work between them. This scheme would involve putting (a smaller) part of the exponent on GPU, exponentiating the rest on CPU, and combining the results. Unfortunately, due to different ratio's of CPU and GPU power, we would need to maintain either a table for most common combinations or run a test first to determine the optimal ratio.\\
 \\
-However, the gains are minimal even with more powerful GPUs. Graphic cards draw a lot of power, heat up the machine and increase fan noise. This scheme would require us to maintain two versions of the same code and would be economical only if we already own a strong GPU. If we want to buy a machine specifically for zCash, it would make more sense to buy a processor with more cores.
+However, the gains are minimal even with more powerful GPUs. Graphic cards draw a lot of power, heat up the machine and increase fan noise. This scheme would require us to maintain two versions of the same code and would be economical only if we already own a strong GPU. If we want to buy a machine specifically for Zcash, it would make more sense to buy a processor with more cores.

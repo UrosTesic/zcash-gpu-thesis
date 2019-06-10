@@ -3,7 +3,7 @@
 \chapter{Results} % Main chapter title
 
 \label{Chapter6} % Change X to a consecutive number; for referencing this chapter elsewhere, use \ref{ChapterX}
-
+In this chapter we first describe the hardware that was used for benchmarking. Afterward, we use the opportunity to discuss the problems involved in developing code for different OpenCL devices. Finally, we outline the tests we ran, and report the results.
 %----------------------------------------------------------------------------------------
 %	SECTION 1
 %----------------------------------------------------------------------------------------
@@ -87,8 +87,10 @@ To determine the best target for optimization we benchmarked different parts of 
 
 We decided to benchmark our multiexponentiation algorithms on group G1, with ~131k points and exponents. This is the size of the largest array that gets processed. $\mathbb{G}_1$ group was selected because it is simpler to implement and is used more often than $\mathbb{G}_2$.
 \begin{figure}[h]
-    \includegraphics[width=\linewidth]{Figures/finalresults.png}
+    \begin{center}
+        \makebox[\textwidth][c]{\includegraphics[width=1.0\linewidth]{Figures/finalresults.png}}
     \caption{Comparison of Algorithms Implemented Running on Various Hardware}
     \label{fig:finalresults}
+    \end{center}
 \end{figure}
  \noindent The data for integrated GPUs (Intel and Mali) shown in Figure \ref{fig:finalresults} has been cut off at 6 seconds. The actual times are much higher -- several minutes for Mali and 10.4 seconds for the best Intel kernel. NVIDIA and AMD perform better, but still not at the level of CPUs. Square-and-multiply takes the most time, followed by windowed-square-and-multiply. Variants of Pippenger's algorithm are the fastest, with 4-bit Pippenger with CPU reduction taking the first spot. Unfortunately, even it fails to overtake multiexponentiation on Intel i7.

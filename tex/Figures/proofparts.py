@@ -37,4 +37,4 @@ plt.xticks((index, index + 1.5*bar_width), ('FFT', 'Multiexponentiation'))
 
 
 plt.tight_layout()
-plt.savefig("proofparts.png")
+plt.savefig("proofparts.png", dpi=300)

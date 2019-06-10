@@ -60,9 +60,12 @@ headsepline, % Uncomment to get a line under the header
 \usepackage[]{amsthm}
 
 \usepackage[final]{pdfpages}
+\usepackage[]{verbatim}
+\usepackage[]{placeins}
 
 \theoremstyle{definition}
 \newtheorem{exmp}{Example}[section]
+\newtheorem{theorem}{Theorem}[section]
 
 \lstdefinelanguage
    [x64]{Assembler}     % add a "x64" dialect of Assembler
@@ -107,7 +110,7 @@ headsepline, % Uncomment to get a line under the header
 \addresses{} % Your address, this is not currently used anywhere in the template, print it elsewhere with \addressname
 
 \subject{Computer Science} % Your subject area, this is not currently used anywhere in the template, print it elsewhere with \subjectname
-\keywords{zk-SNARKs, zCash, OpenCL, GPU, multiexponentiation, elliptic curves, scalar multiplication} % Keywords for your thesis, this is not currently used anywhere in the template, print it elsewhere with \keywordnames
+\keywords{zk-SNARKs, Zcash, OpenCL, GPU, multiexponentiation, elliptic curves, scalar multiplication} % Keywords for your thesis, this is not currently used anywhere in the template, print it elsewhere with \keywordnames
 \university{\href{https://www.ethz.ch}{ETH Z\"urich}} % Your university's name and URL, this is used in the title page and abstract, print it elsewhere with \univname
 \department{\href{https://inf.ethz.ch}{D-INFK}} % Your department's name and URL, this is used in the title page and abstract, print it elsewhere with \deptname
 \group{\href{https://www.syssec.ethz.ch/}{System Security Group}} % Your research group's name and URL, this is used in the title page, print it elsewhere with \groupname
@@ -192,9 +195,9 @@ headsepline, % Uncomment to get a line under the header
 \addchaptertocentry{\abstractname} % Add the abstract to the table of contents
 Cryptocurrencies promise a new age of money and payment systems. By distributing trust they prevent any party from controlling the flow of resources. However, this comes at a price -- most cryptocurrencies rely on a public ledger. This puts user's privacy at risk because anyone can monitor and track transactions.\\
 \\
-Cryptocurrency zCash provides completely encrypted transactions by using zero-knowledge proofs (zk-SNARKs) to validate them. Unfortunately, zk-SNARKs are expensive to compute. This limits their widespread adoption on computationally limited devices such as mobile phones. They are also complex to implement, preventing the development of hardware wallets for zCash.\\
+Cryptocurrency Zcash provides completely encrypted transactions by using zero-knowledge proofs (zk-SNARKs) to validate them. Unfortunately, zk-SNARKs are expensive to compute. This limits their widespread adoption on computationally limited devices such as mobile phones. They are also complex to implement, preventing the development of hardware wallets for Zcash.\\
 \\
-In this thesis, we take a look at porting computationally expensive part of zk-SNARKs to a GPU to take full advantage of the available processing power. We also explain the difficulties involved in developing OpenCL code meant to be executed on GPUs from multiple vendors.\\
+In this thesis, we take a look at porting computationally expensive part of zk-SNARKs to a GPU to take full advantage of the available processing power. We also explain the difficulties involved in developing OpenCL code meant to be executed on GPUs from multiple vendors. Finally, we identify the hardware constrains that need to be satisfied to achieve a significant speedup.\\
 \\
 \textbf{Keywords: }\keywordnames
 \end{abstract}

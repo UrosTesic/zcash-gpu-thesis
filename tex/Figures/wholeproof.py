@@ -44,4 +44,4 @@ plt.legend()
 
 
 plt.tight_layout()
-plt.savefig("wholeproof.png")
+plt.savefig("wholeproof.png", dpi=300)

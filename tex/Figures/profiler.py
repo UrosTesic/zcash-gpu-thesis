@@ -38,4 +38,4 @@ plt.legend()
 
 
 plt.tight_layout()
-plt.savefig("profiler.png")
+plt.savefig("profiler.png", dpi=300)

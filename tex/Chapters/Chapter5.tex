@@ -5,11 +5,11 @@
 %----------------------------------------------------------------------------------------
 %	SECTION 1
 %----------------------------------------------------------------------------------------
-
+In this chapter we describe our OpenCL implementation of BLS12-381 operations. Afterward, we explain the problem of multiexponentiation and list related literature. Finally, we give outline of three algorithms: Pippenger's algorithm, binary method, and windowed method. We also describe their different implementations in OpenCL. We use multiplication as the group operation in this chapter to make examples easier to follow, and to justify the name of the problem - multiexponentiation.
 \section{Implementation of Elliptic Curve Operations}
 
 
-The Rust implementation of BLS12-381 from the pairing crate \cite{githubpairing} used by zCash was ported to OpenCL C. This step was straight-forward and made easier by the fixed size of primitive data types in both Rust and OpenCL C. Constants were used wherever it was possible, to aid compiler optimization. Almost all functions were inlined to remove the function call overhead and open new opportunities for optimization. Due to the difficulty in debugging on GPUs and cryptographic code, almost every function is unit tested and compared to the Rust implementation.\\
+The Rust implementation of BLS12-381 from the pairing crate \cite{githubpairing} used by Zcash was ported to OpenCL C. This step was straight-forward and made easier by the fixed size of primitive data types in both Rust and OpenCL C. Constants were used wherever it was possible, to aid compiler optimization. Almost all functions were inlined to remove the function call overhead and open new opportunities for optimization. Due to the difficulty in debugging on GPUs and cryptographic code, almost every function is unit tested and compared to the Rust implementation.\\
 \\
 The host code is written in Rust to interface with the librustzcash Rust library \cite{githublibrustzcash}, and uses ocl crate \cite{githubocl}. The higher level interface is used for testing on Intel, NVIDIA and AMD GPUs. However, cross-compilation for Android some tests had to be implemented using the low-level API.\\
 \\
@@ -28,7 +28,7 @@ While square-and-multiply (Figure \ref{fig:sam}) and the sliding window method (
 \\
 \textbf{Example:} $2^3 5^3$ can be computed as $(2 \cdot 5)^3$.\\
 \\
-Pippenger's multiexponentiation algorithm \cite{pippenger1976evaluation} can be used to calculate the required product. The algorithm can be used to calculate several multiproducts at once ($x_1^{y_1} x_2^{y_2} \dots x_n^{y_n}$, $x_1^{z_1} x_2^{z_2} \dots x_n^{z_n}$, $x_1^{p_1} x_2^{p_2} \dots x_n^{p_n}$) and Pippenger has proven that the algorithm is asymptotically optimal. However, for zk-SNARKs we require only one multiexponentiation, so the actual implementation is slightly simpler. For background on Pippenger's algorithm consult \cite{henry2010pippenger}. Another paper on Pippenger, as well as some alternatives (such as Yao's \cite{yao1976evaluation} and Brauer \cite{brauer1939addition}) is \cite{bernstein2002pippenger3s}. For discussion and computational comparison of several methods (including Bos-Coster algorithm \cite{bos1989addition}) check \cite{bergeron1994efficient}. In the rest of the section, we will discuss the version of the Pippenger from bellman Rust crate (Figure \ref{fig:multiexp}).
+Pippenger's multiexponentiation algorithm \cite{pippenger1976evaluation} can be used to calculate the required product. The algorithm can be used to calculate several multiproducts at once ($x_1^{y_1} x_2^{y_2} \dots x_n^{y_n}$, $x_1^{z_1} x_2^{z_2} \dots x_n^{z_n}$, $x_1^{p_1} x_2^{p_2} \dots x_n^{p_n}$) and Pippenger has proven that the algorithm is asymptotically optimal. However, for zk-SNARKs we require only one multiexponentiation, so the actual implementation is slightly simpler. For background on Pippenger's algorithm consult \cite{henry2010pippenger}. Another paper on Pippenger, as well as some alternatives (such as Yao's \cite{yao1976evaluation} and Brauer \cite{brauer1939addition}) is \cite{bernstein2002pippenger3s}. For discussion and computational comparison of several methods (including Bos-Coster algorithm \cite{bos1989addition}) check \cite{bergeron1994efficient}. In the rest of the section, we will discuss the version of the Pippenger from bellman Rust crate (Algorithm \ref{fig:multiexp}).
 \begin{algorithm}[h]
 \caption{Simplified Pippenger}\label{fig:multiexp}
 \begin{algorithmic}[1]
@@ -37,6 +37,8 @@ Pippenger's multiexponentiation algorithm \cite{pippenger1976evaluation} can be 
     \If{$Shift + Width < EXP\_BITS$}
         \State $Higher \gets \textbf{new thread}$ \Call{MultiexpInner}{\textit{Bases}, \textit{Exponents}, \textit{Shift}+\textit{Width}, \textit{Width}}
     \EndIf
+
+    \Comment{Bucket creation and assignment}
     \State $Buckets \gets \textbf{new} \; Base[1\dots2^{Width}-1]$
     \State $Mask \gets 2^{Width}-1$
     \For{$i \gets 1 \dots n$}
@@ -49,11 +51,13 @@ Pippenger's multiexponentiation algorithm \cite{pippenger1976evaluation} can be 
     \State $PartialSum \gets 0$
     \State $Sum \gets 0$
     
+    \Comment{Smart multiplication step}
     \For{$i \gets 2^{Width}-1 \dots 1$}
         \State $PartialSum \gets PartialSum \cdot Buckets[i]$
         \State $Sum \gets Sum \cdot PartialSum$
     \EndFor
     
+    \Comment{Chunk combination step}
     \If{$Shift + Width < EXP\_BITS$}
         \State \textbf{wait} $Higher$
         \For{$i \gets Width \dots 1$}
@@ -77,14 +81,20 @@ Pippenger's multiexponentiation algorithm \cite{pippenger1976evaluation} can be 
 \EndFunction
 \end{algorithmic}
 \end{algorithm}
-
-The algorithm segments the exponents in chunks of several bits. Every thread then iterates through the assigned bits, and based on them, adds bases to corresponding buckets. Buckets are then added in an efficient way:
-
-$$ a + 2b + 3c = c + (c + b) + (c + b + a) $$
-
-Afterward, we wait for higher threads to finish, and combine results.\\
+\FloatBarrier
+\noindent Instead of exponentiating bases separately, and them muliplying them together, Algorithm \ref{fig:multiexp} does the opposite. It segments exponents into chunks (eg. bits 3-0) and adds the bases to corresponding buckets based on the value of the chunk. This results a bucket containing all bases that need to be exponentiated to the same power. Considering that the number of buckets is smaller than the number of bases, we should save quite a bit of time.\\
 \\
-As we can see this algorithm is quite parallelizable. We just need to change the width of the bit chunk to distribute work over more threads. Another possibility is to split the bases and exponents and do the calculation separately. However, we notice some limitations as well. There is sequential work that needs to be done when we are combining results. We cannot split the work on more processors than there are bits in the exponent, without splitting the bases to different processors. This would add another sequential step in the end to combine all intermediate results.
+
+It is actually possible to do even better. We don't need to exponentiate buckets separately. Considering that all buckets have sequential powers we need to calculate, we can do it in the following way:
+
+\begin{equation}
+    \label{eq:smartexp}
+    a \cdot b^2 \cdot c^3 = c \cdot (c \cdot b) \cdot (c \cdot b \cdot a)
+\end{equation}
+
+\noindent We can run this algorithm in multiple threads -- assigning a different chunk to every thread. In the end, we just merge the results by squaring a higher chunk enough times, and multiplying it with a lower one.\\
+\\
+As we can see this algorithm is quite parallelizable. We just need to change the width of the bit chunk to distribute work over more threads. However, the hard limit to this is the number of bits in the exponent. In case that we have more processors than bits in the exponent, we can split bases we want to exponentiate in two parts. Instead of iterating though all bases, threads would iterate through bases in the segment assigned to them. There would also be an additional step of multiplying results from all segments together. Unfortunately, the smart multiplication from Equation \ref{eq:smartexp} will also be replicated.
 \\
 \subsection{Implemented Algorithms}
 
@@ -121,7 +131,9 @@ As we can see this algorithm is quite parallelizable. We just need to change the
     \EndFunction
     \end{algorithmic}
 \end{algorithm}
-Square-and-multiply\footnote{Double-and-add in additive groups} \cite{knuth2014art} (Figure \ref{fig:sam}) multiexponentiation kernel implements multiexponentiation in a simple way. Every elliptic curve point and exponent is loaded, exponentiated separately using the binary method, and written back to memory. Reduction algorithm is then called to produce the final result.
+Square-and-multiply\footnote{Double-and-add in additive groups} \cite{knuth2014art} (Algorithm \ref{fig:sam}) multiexponentiation kernel implements multiexponentiation in a simple way. Every elliptic curve point and exponent is loaded and exponentiated separately. The exponentiation is performed by iterating through the exponent left-to-right. For every bit we square the result\footnote{We double in an additive group} and multiply by the base\footnote{We add the base in an additive group} if the bit is 1. After we process all bases, we call the reduction algorithm to produce the final result.
+
+\FloatBarrier
 \subsubsection{Sliding Window Method}
 \begin{algorithm}[h]
     \caption{Sliding Window Method}\label{fig:wsam}
@@ -161,10 +173,14 @@ Square-and-multiply\footnote{Double-and-add in additive groups} \cite{knuth2014a
     \EndFunction
     \end{algorithmic}
 \end{algorithm}
-Sliding window method \cite{knuth2014art} \ref{fig:wsam} is a generalization of square-and-multiply. It also works with every point and exponent separately, but it processes the exponent 4 bits at a time. First, a lookup table is generated for the powers of the current base (powers 2-15). For every chunk of the exponent read, it performs the needed amount of squarings and adds the corresponding power. This method uses more memory than ordinary square-and-multiply, but the number of operations is lower.
+Sliding window method \cite{knuth2014art} (Algorithm \ref{fig:wsam}) is a generalization of square-and-multiply. It also works with every point and exponent separately, but it processes the exponent 4 bits at a time. First, a lookup table is generated for the powers of the current base (powers 2-15). For every chunk of the exponent read, it performs the needed amount of squarings and multiplies the result by the corresponding power. This method uses more memory than ordinary square-and-multiply, but the number of operations is lower. Just like in the binary method, we perform reduction to compute the final result.
+
+\FloatBarrier
 \subsubsection{Four-bit Pippenger's Algorithm}
-This kernel is the closest to the Rust implementation of Pippenger's algorithm (Figure \ref{fig:multiexp}). Points are divided in chunks to take advantage of thousands of processors on the GPU. Every thread then iterates through the points in the chunk and reads the four-bit window in the exponent based on the thread index. Point is then added to the corresponding bucket. In the end, we add the buckets and write the result to shared local memory. Then we combine results from all threads working on the same chunk. This is done by a variation of a reduction algorithm working only on local memory. The chunk value is then written to global memory, and a reduction algorithm is called to combine all chunks together.
+This kernel is the closest to the Rust implementation of Pippenger's algorithm (Algorithm \ref{fig:multiexp}). Points are segmented to take advantage of thousands of processors on the GPU. Every thread then iterates through the points in the segment and reads the four-bit window (chunk) in the exponent based on the thread index. Point is then added to the corresponding bucket (Algorithm \ref{fig:multiexp} - Bucket assignment step). We then add the buckets together (Algorithm \ref{fig:multiexp} - Smart multiplication step) write the result to shared local memory.\\
+\\
+At this point, values corresponding to different bit offsets are reduced to the value of the segment by squaring and multiplying them enough times (Algorithm \ref{fig:multiexp} - Chunk combination step). The segment value is then written to global memory, and a reduction algorithm is called to combine all segments.
 \subsubsection{One-bit Pippenger's Algorithm}
-In this implementation of Pippenger's algorithm (Figure \ref{fig:multiexp}), points are divided into multiple chunks. Kernel threads are grouped in blocks of 256, and every thread is assigned to a bit in the exponent. Every thread iterates through the points in its chunk and adds all points where the tracked bit is one. When they are finished, threads write the results to the global memory. These sums are then reduced based on the bit in the exponent which was assigned to them. Finally, these 256 values are added together using the efficient addition algorithm from the previous section.
+In this implementation of Pippenger's algorithm (Algorithm \ref{fig:multiexp}), points are divided into multiple chunks. Kernel threads are grouped in blocks of 256, and every thread is assigned to a bit in the exponent. Every thread iterates through the points in its segment and adds all points where the tracked bit is one. When they are finished, threads write the results to the global memory. These sums are then reduced based on the bit in the exponent which was assigned to them. Reduction results in 256 values, which are then multiplied using the efficient multiplication algorithm (Equation \ref{eq:smartexp}).
 \subsubsection{Four-bit Pippenger's Algorithm with Separate Reduction}
-Four-bit Pippenger's Algorithm (Figure \ref{fig:multiexp}) kernel has an advantage that it performs fewer operations than the one-bit kernel. However, it features a local shared memory reduction step done on GPU, during which many processing units could be left without any work. This kernel starts as Four-bit Pippenger's algorithm, but writes the result of each thread to global memory, instead of reducing them. At the very end, they are reduced to 64 powers, and combined to get the final result.
+Four-bit Pippenger's Algorithm (Algorithm \ref{fig:multiexp}) kernel has an advantage that it performs fewer operations than the one-bit kernel. However, it features a local shared memory reduction step done on GPU, during which many processing units could be left without any work. This kernel starts as Four-bit Pippenger's algorithm, but writes the result of each thread to global memory, instead of reducing them. At the very end, they are reduced to 64 powers, and combined on CPU to get the final result.

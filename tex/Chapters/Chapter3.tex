@@ -1,22 +1,22 @@
 % Chapter Template
 
-\chapter{zCash and zk-SNARKs} % Main chapter title
+\chapter{Zcash and zk-SNARKs} % Main chapter title
 
 \label{Chapter3} % Change X to a consecutive number; for referencing this chapter elsewhere, use \ref{ChapterX}
 
 %----------------------------------------------------------------------------------------
 %	SECTION 1
 %----------------------------------------------------------------------------------------
+In this chapter we provide an overview of how Zcash data is saved and how this guarantees anonymity to its users. Next, we explain the origin of zero-knowledge proofs in the paper by Goldwasser et al \cite{goldwasser1985knowledge}. Afterward, we go through the steps of a zero-knowledge proof used in Zcash -- zk-SNARKs. Finally, we discuss the changes to Zcash in the latest update (Sapling).
+\section{Zcash}
 
-\section{zCash}
-
-Cryptocurrencies have appeared recently and have been marketed as an alternative to cash and electronic payments. The best example is the Bitcoin bubble which made people gain millions overnight, and lose them soon after. However, Bitcoin is of limited use today. It cannot be used as a general currency due to the low throughput and long waiting times for the transaction to be added to the block. Its status as an anonymous currency is also disputed, resulting in 2 different cryptocurrencies being developed to fill that void - Monero (XMR) \cite{monero} and zCash (ZEC) \cite{zcashmain}.\\
+Cryptocurrencies have appeared recently and have been marketed as an alternative to cash and electronic payments. The best example is the Bitcoin bubble which made people gain millions overnight, and lose them soon after. However, Bitcoin is of limited use today. It cannot be used as a general currency due to the low throughput and long waiting times for the transaction to be added to the block. Its status as an anonymous currency is also disputed, resulting in 2 different cryptocurrencies being developed to fill that void - Monero (XMR) \cite{monero} and Zcash (ZEC) \cite{zcashmain}.\\
 \\
-ZCash defines two types of addresses. Transparent addresses behave the same way as Bitcoin addresses. Data resides in the public blockchain so it can be tracked the same way as with Bitcoin. However, shielded addresses reveal nothing when they are a part of the transaction. This is accomplished by using notes (\textbf{NOTE}) which contain the public key (\textbf{PK}) of the owner, some amount of zCash (\textbf{M}), as well as a unique identifier (\textbf{N}). Every shielded transaction results in a note like this (transaction output). When this note is used in a transaction, it is spent, and its nullifier (\textbf{NULL(N)}) is published. Valid, unspent notes are ones which are in the set of all generated notes, and whose nullifier hasn't been published.\\
+Zerocash whitepaper \cite{sasson2014zerocash} identified the faults in Bitcoin and proposed an alternative -- Zerocash. Zcash is an instantation of Zerocash built on top of Bitcoin protocol.  Zcash has two different addresses. Transparent addresses behave the same way as Bitcoin addresses. Data resides in the public blockchain so it can be tracked the same way as with Bitcoin. However, shielded addresses (Zerocash addresses) reveal nothing when they are a part of the transaction. This is accomplished by using notes (\textbf{NOTE}) which contain the public key (\textbf{PK}) of the owner, some amount of Zcash (\textbf{M}), as well as a unique identifier (\textbf{N}). Every shielded transaction results in a note like this (transaction output). When this note is used in a transaction, it is spent, and its nullifier (\textbf{NULL(N)}) is published. Valid, unspent notes are ones which are in the set of all generated notes, and whose nullifier hasn't been published.\\
 \\
-Keeping all notes in a list would result is an abysmal performance, so they are kept in a Merkle tree. Furthermore, instead of keeping notes in a public structure, where everyone can see them, we keep commitments to notes (\textbf{COMM(NOTE)}). This guarantees that the value and owner of note are not public. However, now that we don't know \textbf{PK} of the note's owner, how do we verify the transaction?\\
+Keeping all notes in a list would result is an abysmal performance, so they are kept in a Merkle tree. Furthermore, instead of keeping notes in a public structure, where everyone can see them, we keep commitments to notes (\textbf{COMM(NOTE)}). This guarantees that the value (\textbf{M}) and the owner's identity (\textbf{PK}) are not public. However, now that we don't know \textbf{PK} of the note's owner, how do we verify the transaction?\\
 \\
-Spending a note in zCash involves computing a zero-knowledge proof $\pi$. This requires the \textbf{NOTE}'s spender to prove the following:
+Spending a note in Zcash involves computing a zero-knowledge proof $\pi$. This requires the \textbf{NOTE}'s spender to prove the following:
 
 \begin{itemize}
     \item The commitment \textbf{COMM(NOTE)} exists in a Merkle tree with all notes
@@ -24,14 +24,14 @@ Spending a note in zCash involves computing a zero-knowledge proof $\pi$. This r
     \item The \textbf{NULL(N)} is equal to the nullifier provided (\textbf{T})
 \end{itemize}
 
-If the proof verification passes, the node can check if the note has been spent previously by searching for \textbf{T} in a Merkle tree with published nullifiers. This results in the transaction being accepted and added to the blockchain. Along with this \textbf{T} is added to the set of spent nullifiers. For more information read \cite{zcashzksnarks, zcashprotocol}.
+If the proof verification passes, the node can check if the note has been spent previously by searching for \textbf{T} in a Merkle tree with published nullifiers. This results in the transaction being accepted and added to the blockchain. Along with this \textbf{T} is added to the set of spent nullifiers. For more information read \cite{zcashzksnarks, zcashprotocol, sasson2014zerocash}.
 
 %----------------------------------------------------------------------------------------
 %	SECTION 2
 %----------------------------------------------------------------------------------------
 
 \section{Zero-Knowledge Proofs}
-
+\label{section:zkproofs}
 In 1985. Goldwasser, Micali, and Rackoff published a paper with an interesting twist \cite{goldwasser1985knowledge}. Most papers discussed methods of combating a dishonest prover, trying to deceive an honest verifier. Their work took a completely different approach: What information could a verifier obtain from a prover? They defined a new class of languages - IP (Interactive Proof). IP contains language L for which there is an interactive protocol between the prover P and a verifier V, after which P has convinced V with a non-negligible probability that the statement s is in the language L.\\
 \\
 The interactive proof must satisfy the following properties:
@@ -48,56 +48,131 @@ Another important property that proof may have is \textbf{zero-knowledge}. While
 \\
 Unfortunately, zero-knowledge proofs described are interactive. They cannot be used in blockchain because every verification of the blocks would require all parties to be online and exchange messages with the verifier. Blum, Feldman and Micali \cite{blum1988non} introduced \textbf{N}on-\textbf{I}nteractive \textbf{Z}ero-\textbf{K}nowledge proofs (NIZK -- pronounced \textit{nee-zeek}). These proofs require a preparation step -- the establishment of a common reference string (CRS). This is performed once and CRS is later used for proof generation and verification.\\
 \\
-Some NIZKs, such as zk-STARKs \cite{ben2018scalable}, don't require the establishment of CRS. In such constructions a pre-agreed hash function (\textit{random-oracle}) plays the role of a CRS. This makes zk-STARKs harder to backdoor, however the large proof size prevents us from using these NIZKs in a blockchain setting.
+Some NIZKs, such as zk-STARKs \cite{ben2018scalable}, don't require the establishment of CRS. In such constructions a pre-agreed hash function (\textit{random-oracle}) plays the role of a CRS. This makes zk-STARKs harder to backdoor. However the large proof size prevents us from using them in a blockchain setting.
 
 \section{zk-SNARKs}
 
-\subsection{Introduction}
-zk-SNARKs are a cryptographic primitive used for zero-knowledge proofs. Their name stands for \textbf{Z}ero-\textbf{K}nowledge \textbf{S}uccinct \textbf{N}on-Interactive \textbf{Ar}guments of \textbf{K}nowledge. They cannot be considered true proofs, but arguments because they hold only computationally. The main strength lies in succinctness and non-interactivity - zk-SNARK proofs are short and can be verified offline. Furthermore, they can be used to prove any statement that can be represented as a circuit (eg. any finite computation on a modern CPU). This can be useful in a number of contexts, not only for cryptocurrencies. (eg. verifiable cloud execution). zk-SNARKs aren't interactive so they require a preparation stage to generate a CRS.\\
+zk-SNARKs are a cryptographic primitive used for zero-knowledge proofs. Their name stands for \textbf{Z}ero-\textbf{K}nowledge \textbf{S}uccinct \textbf{N}on-Interactive \textbf{Ar}guments of \textbf{K}nowledge. They cannot be considered true proofs, but arguments because they hold only computationally. The main strength lies in succinctness and non-interactivity - zk-SNARK proofs are short and can be verified offline. Furthermore, they can be used to prove any statement that can be represented as a circuit (eg. any finite computation on a modern CPU). This can be useful in a number of contexts, not only for cryptocurrencies. (eg. verifiable cloud execution). zk-SNARKs aren't interactive so they require a preparation stage to generate a common reference string (CRS). CRS generation step is the most sensitive part of zk-SNARKs. The randomness used to generate CRS needs to be deleted to prevent the creation of fake proofs.\\
 \\
-Most of the material in this section is based on a series of articles by Vitali Buterin \cite{buterin1, buterin2, buterin3} and is meant to bridge the gap between Buterin's articles and full papers. The differences from Buterin's articles, as well as from the original papers are discussed at the end of this section. For further information consult original papers -- Pinocchio protocol\cite{parno2013pinocchio} and Zerocash whitepaper \cite{sasson2014zerocash}, as well as zCash blog \cite{zcashzksnarks} and zCash protocol \cite{zcashprotocol}. % cite Pinocchio, Groth, zCash blog posts, articles by Vitali Buterin
+Most of the material in this section is based on a series of articles by Vitali Buterin \cite{buterin1, buterin2, buterin3} and is meant to bridge the gap between Buterin's articles and full papers. The differences from Buterin's articles, as well as from the original papers are discussed at the end of this section. For further information consult original papers -- Pinocchio protocol\cite{parno2013pinocchio} and Zerocash whitepaper \cite{sasson2014zerocash}, as well as Zcash blog \cite{zcashzksnarks} and Zcash protocol \cite{zcashprotocol}. % cite Pinocchio, Groth, Zcash blog posts, articles by Vitali Buterin
 
 \subsection{Arithmetic Circuit}
 
-The calculation we want to perform starts as a program. To generate a proof for it, we need to convert it into an arithmetic circuit over the field $\mathbb{F}$. The gates in the circuit consist of two field operations and their inverses (eg. addition, multiplication, subtraction, and division). Different variables in the program and intermediate results are represented by different wires in the circuit. Conditional execution can be simulated by performing all branches in parallel, and selecting one of them. Finite loops are unrolled and function calls are inlined.
-
-\subsection{R1CS Form}
-The next step of generating a proof is making sure that all constraints in the circuit are satisfied (eg. that multiplication gates actually perform multiplication). This is achieved by conversion of the circuit into R1CS form (Rank 1 Constraint System). Every gate is transformed independently. It consists of a vector S, containing values of all wires in the circuit, with value 1 prepended to this vector. Additionally, R1CS form comprises vectors $A_i$, $B_i$, and $C_i$, such that the following constraint is met:
-
-$$ A_i \cdot S \times B_i \cdot S - C_i \cdot S = 0 $$
-
-\noindent The conversion follows a standardized procedure for all four basic operations, which is illustrated in Figure \ref{fig:r1csmul} for multiplication. Vectors A and B are used for selection and scaling of inputs to the gate, while the vector C scales and selects the output. We transform all gates as described. Due to the properties of dot product, we can also collapse all additions and subtractions into multiplication and division gates.
+The calculation we want to perform starts as a program. To generate a proof for it, we need to convert it into an arithmetic circuit over the field $\mathbb{F}$. The gates in the circuit consist of two field operations and their inverses (eg. addition, multiplication, subtraction, and division). Different variables in the program and intermediate results are represented by different wires in the circuit. Conditional execution can be simulated by performing all branches in parallel, and selecting one of them. Finite loops are unrolled and function calls are inlined. Example arithmetic circuit can be seen in Figure \ref{fig:circuit}.
 
 \begin{figure}[h]
-    \includegraphics[width=\linewidth]{Figures/R1CS.png}
-    \caption{Conversion of Multiplication to R1CS Form}
-    \label{fig:r1csmul}
+    \centering
+    \includegraphics[width=.75\linewidth]{Figures/Circuit.png}
+    \caption{Example Arithmetic Circuit}
+    \label{fig:circuit}
 \end{figure}
 
+\FloatBarrier
+\subsection{R1CS Form}
+The next step of generating a proof is making sure that all constraints in the circuit are satisfied (eg. that multiplication gates actually perform multiplication). This is achieved by conversion of the circuit into R1CS form (Rank 1 Constraint System). Circuits consist of gates and wires. Gates perform operations and wires carry values. R1CS makes sure that values satisfy constraints set by the gates.\\
+\\
+R1CS for a gate consists of 4 vectors: \textbf{S}, \textbf{A}, \textbf{B}, and \textbf{C}. Vector \textbf{S} represents the assignments of values to all wires in a circuit, and a value 1. It is also called a witness. Vectors \textbf{A}, \textbf{B}, and \textbf{C} represent the constraints. They are filled based on the operation the gate performs, in such way that the constraint in Equation \ref{eq:r1cs} is met.
+
+\begin{equation}
+    \label{eq:r1cs}
+    \textbf{A}_i \cdot \textbf{S} \times \textbf{B}_i \cdot \textbf{S} - \textbf{C}_i \cdot \textbf{S} = 0
+\end{equation}
+
+\noindent If we take a look at the multiplication gate in Figure \ref{fig:circuit}, we can construct the following R1CS representation:
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=.5\linewidth]{Figures/{"MUL R1CS"}.png}
+    \caption{Multiplication Gate R1CS}
+    \label{fig:mulr1cs}
+\end{figure}
+
+\FloatBarrier
+
+\noindent The first thing that we notice in Figure \ref{fig:mulr1cs} is that there is no wire marked \textbf{add}. Addition (and subtraction) can be folded into multiplication and division gates, so we can reduce the number of wires. Wire \textbf{add} has been replaced by inputs of the addition gate \textbf{a} and \textbf{b}. These values have been assigned value \textbf{1} in vector \textbf{A} -- they appear once in the first argument of multiplication. Wire \textbf{div} appears once in right argument (vector \textbf{B}), while wire \textbf{mul} is marked in the output (vector \textbf{C}). Calculating the constraint shows that Equation \ref{eq:r1cs} is satisfied.\\\\
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=.5\linewidth]{Figures/{"DIV R1CS"}.png}
+    \caption{Division Gate R1CS}
+    \label{fig:divr1cs}
+\end{figure}
+
+\noindent Figure \ref{fig:divr1cs} shows R1CS for the division gate in Figure \ref{fig:circuit}. R1CS for this gate actually guarantees that $\textbf{div} \cdot \textbf{d} = \textbf{c}$, which is equivalent to $\textbf{c} / \textbf{d} = \textbf{div}$. Vector \textbf{A} contains the coefficient for \textbf{div}, while vector \textbf{B} contains the value connected to the divisor \textbf{d}. The dividend \textbf{c} has been assigned a value of 1 in vector \textbf{C}. Equation \ref{eq:r1cs} is also satisfied in this case.
+
+\FloatBarrier
+
 \subsection{Quadratic Arithmetic Program}
-Quadratic Arithmetic Program enables us to represent R1CS constraints for all gates at once. First, we enumerate all gates, and construct three polynomials (A(x), B(x), and C(x)) for every variable in the circuit. Polynomial for the j-th variable $A_j(x)$ is formed by interpolating it through the points with coordinates $(i, A_i[j])$. 
+Quadratic Arithmetic Program enables us to represent R1CS constraints for all gates at once. First, we enumerate all gates, and construct three polynomials (A(x), B(x), and C(x)) for every wire in the circuit. Polynomial for the j-th variable $A_j(x)$ is formed by interpolating it through the points with coordinates $(i, \textbf{A}_j^i)$. Here, $i$ represents the gate index and $\textbf{A}_j$ represents the entry assigned to $j^{th}$ wire. 
 %, where GateIndex is the index assigned to gate when they were enumerated, $A_{GateIndex}$ is the corresponding A vector, and $A_{GateIndex} [i]$ is the value of the i-th constant in the vector
-Polynomials can be interpolated using well-known algorithm such as Langrangian interpolation. Extracting previous values from the polynomial is possible by evaluating them at the corresponding variable index.\\
-\\
-Then, we form a new polynomial A(x) by arranging all $A_j$ vectors in a new vector based on the index j, and taking a scalar product with S. We form polynomials B(x) and C(x) the same way.
+Polynomials can be interpolated using well-known algorithm such as Langrangian interpolation. We can recover R1CS vectors by calculating values of the polynomials at the gate's index (Example \ref{ex:recover}).
 
-$$ A(x) = \sum_{j = 1}^{number\,of\,gates} S_j \cdot A_j(x) $$
+\begin{exmp}
+\label{ex:recover}
+If we want to recover the $2^{nd}$ gate's value assigned to $4^{th}$ wire in vector \textbf{B} -- $\textbf{B}_4^2$, we can do it by computing $B_4(2)$.
+\end{exmp}
 
-\noindent Considering that polynomials A(x), B(x) and C(x) are sums of interpolated polynomials multiplied by the corresponding element in S, we can evaluate them at different indices and conclude that the following expression holds.
+\noindent Then, we form a new polynomial A(x) by arranging all $A_j$ vectors in a new vector based on the index j, and taking a scalar product with \textbf{S}. We form polynomials B(x) and C(x) the same way. The number of wires (variables) in a circuit is denoted by \textit{w}.
 
-$$\forall t:\: [t \in \{1,\,2,\,3, \dots ,\,number\,of\,gates\} \implies A(t) \cdot B(t) - C(t) = 0]$$
-\\
-\noindent This implies that the polynomial $A(x) \cdot B(x) - C(x)$ is divisible by the polynomial $T(x) = (x-1)(x-2)...(x-number\,of\,gates)$, or more formally:
+\begin{equation}
+    \label{eq:polydef}
+A(x) = \sum_{j = 1}^{w} S^j \cdot A_j(x)
+\end{equation}
 
-$$ A(x) \cdot B(x) - C(x) = H(x) \cdot T(x) $$
+\noindent Considering that polynomials A(x), B(x) and C(x) are sums of interpolated polynomials multiplied by the corresponding element in \textbf{S}, we can evaluate them at different indices and derive Theorem \ref{theorem:zero}. The total number of gates in a circuit is denoted by \textit{g}.
+
+
+
+\begin{theorem}
+    \label{theorem:zero}
+    $$\forall t:\: [t \in \{1,\,2,\,3, \dots g\} \implies A(t) \cdot B(t) - C(t) = 0]$$
+\end{theorem}
+
+\begin{proof}
+    We know that Equation \ref{eq:r1cs} holds for every gate:
+
+    $$\forall t:\: [t \in \{1,\,2,\,3, \dots g\} \implies \textbf{A}_t \cdot \textbf{S} \times \textbf{B}_t \cdot \textbf{S} - \textbf{C}_t \cdot \textbf{S} = 0]$$
+
+    \noindent We can expand every scalar product into a sum over all \textit{n} wires:
+
+    $$\forall t:\: [t \in \{1,\,2,\,3, \dots g\} \implies (\sum_{j = 1}^{n} \textbf{A}_t^j \cdot \textbf{S}^j) \times (\sum_{j = 1}^{n} \textbf{B}_t^j \cdot \textbf{S}^j) - (\sum_{j = 1}^{n} \textbf{C}_t^j \cdot \textbf{S}^j) = 0]$$
+
+    \noindent By definition, a polynomial interpolated from some points has the same values when evaluated at those points, so we can substitute them:
+
+    $$\forall t:\: [t \in \{1,\,2,\,3, \dots g\} \implies (\sum_{j = 1}^{n} A_j(t) \cdot \textbf{S}^j) \times (\sum_{j = 1}^{n} B_j(t) \cdot \textbf{S}^j) - (\sum_{j = 1}^{n} C_j(t) \cdot \textbf{S}^j) = 0]$$
+
+    \noindent We can use the definition of polynomials A(x), B(x), and C(x) (Equation \ref{eq:polydef}) to conclude that Theorem \ref{theorem:zero} is true.
+
+    $$\forall t:\: [t \in \{1,\,2,\,3, \dots g\} \implies A(t) \cdot B(t) - C(t) = 0]$$
+
+\end{proof}
+
+\begin{theorem}
+    \label{theorem:div}
+    Theorem \ref{theorem:zero} implies that the polynomial $A(x) \cdot B(x) - C(x)$ is divisible by the polynomial $T(x) = (x-1)(x-2)\dots(x-g)$, or more formally:
+
+    $$ A(x) \cdot B(x) - C(x) = T(x) \cdot H(x) $$
+
+\end{theorem}
+
+\begin{proof}
+    From \ref{theorem:zero} we know that 1, 2, 3\dots g are roots of the polynomial $A(x) \cdot B(x) - C(x)$. We can now use the factor theorem. The first $g$ factors correspond to known roots of the polynomial, while $H(x)$ represents the coefficient:
+
+    $$ A(x) \cdot B(x) - C(x) = (x-1)(x-2)\dots(x-g) \cdot H(x) $$
+
+    \noindent The first part is actually just $T(x)$ so we subsitute it, finishing the proof.
+
+    $$ A(x) \cdot B(x) - C(x) = T(x) \cdot H(x) $$
+
+\end{proof}
 
 \subsection{Pinocchio Protocol}
 
-This section presumes basic (operational) knowledge of elliptic curves and pairings. In his articles Buterin provides a decent, albeit non-technical, introduction to both elliptic curves and pairings \cite{buterin1, buterin2, buterin3}. For short black-box treatment of different cryptographic pairings, consult \cite{galbraith2008pairings}. Readers looking for a more textbook introduction to pairings, can read \cite{costello2012pairings}.\\
+This section presumes basic (operational) knowledge of elliptic curves and pairings. In his articles Buterin provides a decent, albeit non-technical, introduction to both elliptic curves and pairings \cite{buterin1, buterin2, buterin3}. For a short black-box treatment of different cryptographic pairings, consult \cite{galbraith2008pairings}. Readers looking for a more textbook introduction to pairings, can read \cite{costello2012pairings}.\\
 \\
 The simplest way to verify that all checks that the circuit, or QAP, performs are satisfied, would be to reveal all values. However, that would leak sensitive information such as private keys, available funds, transferred ZEC, etc. Providing just a polynomial divisible by T(x) would be meaningless, because it could have been forged. The primitive we need should provide us with a way to check that the polynomial was constructed in a specific way, while letting us verify that it is indeed divisible by T(x). Pinocchio protocol \cite{parno2013pinocchio} uses  pairings (bilinear maps) to achieve that goal.\\
 \\
-In this section, we use type III pairing: $e: \mathbb{G}_1 \times \mathbb{G}_2 \to \mathbb{G}_T$. Pairing is denoted by a two-argument function $e(P_{G_1}, P_{G_2})$. $G_1, G_2$ and $G_T$ represent generators of groups $\mathbb{G}_1$, $\mathbb{G}_2$ and $\mathbb{G}_T$, respectively. All group operations are represented in the additive notation to stress that we are working with elliptic curve points (+ for the operations in $\mathbb{G}_1$ and $\mathbb{G}_2$, $\oplus$ for $\mathbb{G}_T$ , and $[n]P$ for scalar multiplication for all groups).\\
+In this section, we use a type III pairing: $e: \mathbb{G}_1 \times \mathbb{G}_2 \to \mathbb{G}_T$. A pairing is denoted by a two-argument function $e(P_{G_1}, P_{G_2})$. $G_1, G_2$ and $G_T$ represent generators of groups $\mathbb{G}_1$, $\mathbb{G}_2$ and $\mathbb{G}_T$, respectively. All group operations are represented in the additive notation to stress that we are working with elliptic curve points (+ for the operations in $\mathbb{G}_1$ and $\mathbb{G}_2$, $\oplus$ for $\mathbb{G}_T$ , and $[n]P$ for scalar multiplication for all groups).\\
 \\
 \begin{exmp}
     \label{pairingexample}
@@ -113,33 +188,33 @@ In this section, we use type III pairing: $e: \mathbb{G}_1 \times \mathbb{G}_2 \
     If the pairs have the same quotients, both pairings will be equal. $\square$
 \end{exmp}
 
-\noindent
+\noindent As we mentioned in Section \ref{section:zkproofs} that non-interactive proofs must rely either on a common reference string (CRS), or some shared randomness equivalent to CRS (eg. random oracle). Unless the CRS is created correctly, and all private data is deleted after its creation, it is vulnerable to backdooring. Any person that knows that information can create fake proofs. This is where the term trusted setup originates. In order for proofs to be secure, the party creating it must strictly follow the procedure. As we will see in Section \ref{section:rust}, Zcash has used many different techniques to reduce the risk as much as possible.\\
 \\
-We evaluate all polynomials at a coordinate $t$. This coordinate needs to be secret to keep the proofs secure. The polynomials are evaluated by multiplying the powers of $t$ by $G_1$, and adding them to the CRS. These powers will be used later to compute $[H(t)]G_1$. We presume that the discrete logarithm assumption holds, so the adversary cannot extract $t$ from CRS.\\
+The most important piece of information that needs to be destroyed after we create CRS, is the coordinate $t$ at which polynomials A(x), B(x) and C(x) will be evaluated. There is also a paradox here to resolve: Although $t$ needs to be secret, we must allow the prover to calculate the values of polynomials at $t$. This is achieved by multiplying the powers of $t$ by $G_1$, and adding them to the CRS. These powers will be used later to compute $[H(t)]G_1$. We presume that the discrete logarithm problem (DL) is hard, so the adversary cannot extract $t$ from the powers.\\
 \\
 To obtain $A(t), B(t), C(t)$ we need to compute $A_j(t), B_j(t), C_j(t)$ for all gates in the circuit. By also adding these values multiplied by secret coefficients $k_a, k_b$ and $k_c$ to the CRS, and using the idea from Example \ref{pairingexample}, we are able to prevent the prover from using arbitrary polynomials. Multiplication by the elliptic curve generator enables us to also perform the needed pairing checks. Values $\rho_A, \rho_B, \beta, \gamma$ are also considered secret, and are used to aid subsequent pairing checks. Accordingly, we add the following values to the trusted setup:
 
-$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [\rho_A A_j(t)]G_1, [k_A \rho_A A_j(t)]G_1 $$
-$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [\rho_B B_j(t)]G_2, [k_B \rho_B B_j(t)]G_1 $$ 
-$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [\rho_A \rho_B C_j(t)]G_1, [k_C \rho_A \rho_B C_j(t)]G_1 $$ 
+$$\forall j \in \{1, 2, 3, \ldots g\} : [\rho_A A_j(t)]G_1, [k_A \rho_A A_j(t)]G_1 $$
+$$\forall j \in \{1, 2, 3, \ldots g\} : [\rho_B B_j(t)]G_2, [k_B \rho_B B_j(t)]G_1 $$ 
+$$\forall j \in \{1, 2, 3, \ldots g\} : [\rho_A \rho_B C_j(t)]G_1, [k_C \rho_A \rho_B C_j(t)]G_1 $$ 
 
-The prover then needs to provide the following points to prove that they computed polynomials $A(x), B(x), C(x)$ correctly:
+\noindent The prover then needs to provide the following points to prove that they computed polynomials $A(x), B(x), C(x)$ correctly:
 
 $$\pi_A = [\rho_A A(t)]G_1, \pi_A' = [k_A \rho_A A(t)]G_1$$
 $$\pi_B = [\rho_B B(t)]G_2, \pi_B' = [k_B \rho_B B(t)]G_1$$
 $$\pi_C = [\rho_A \rho_B C(t)]G_1, \pi_C' = [k_C \rho_A \rho_B C(t)]G_1$$
 
-The check is performed by computing:
+\noindent The check is performed by computing:
 
 $$ e(\pi_A, [k_a]G_2) \stackrel{?}{=} e(\pi_A', G_2) $$
 $$ e([k_b]G_1, \pi_B) \stackrel{?}{=} e(\pi_B', G_2) $$
 $$ e(\pi_C, [k_c]G_2) \stackrel{?}{=} e(\pi_C', G_2) $$
 
-\noindent Considering that polynomials $A(x), B(x), C(x)$ are linear combinations of polynomials $A_j(x), B_j(x), C_j(x)$, respectively, required points can be computed from the points in the trusted setup and the witness \textit{s} (\textit{s} represents the coefficients of linear combination).\\
+\noindent Considering that polynomials $A(x), B(x), C(x)$ are linear combinations of polynomials $A_j(x), B_j(x), C_j(x)$, respectively, required points can be computed from the points in the trusted setup and the witness \textbf{S} (\textbf{S} represents the coefficients of linear combination). Notice that the verifier needs $G_1$, $G_2$, $[k_a]G_2$, $[k_b]G_1$, $[k_c]G_2$ to perform the check, so we also need to add them to the CRS. No one can retrieve $k_a$, $k_b$, nor $k_c$ if DL is hard.\\
 \\
 The prover must also convince the verifier that they have used the same coefficients for all polynomials. This is achieved by extending the trusted setup with the following points:
 
-$$\forall j \in \{1, 2, 3, \ldots, number\;of\;gates\} : [\beta(\rho_A A_j(t) + \rho_B B_j(t) + \rho_A \rho_B C_j(t))]G_1 $$
+$$\forall j \in \{1, 2, 3, \ldots, g\} : [\beta(\rho_A A_j(t) + \rho_B B_j(t) + \rho_A \rho_B C_j(t))]G_1 $$
 
 \noindent The prover then provides the point:
 
@@ -162,7 +237,7 @@ The final remark has to do with the choice of groups $\mathbb{G}_1$ and $\mathbb
 \section{Sapling Update}
 
 \subsection{Introduction}
-zCash is undergoing continuous development. The most substantial update to date is called Sapling \cite{zcashsapling}. Its goal was to overhaul the cryptography of zCash. The major changes are a new curve, new commitment scheme, a new proving system, as well as writing these components in Rust. The changes are meant to address the slow speed of shielded transactions, and lead to their wider adoption.
+Zcash is undergoing continuous development. The most substantial update to date is called Sapling \cite{zcashsapling}. Its goal was to overhaul the cryptography of Zcash. The major changes are a new curve, new commitment scheme, a new proving system, as well as writing these components in Rust. The changes are meant to address the slow speed of shielded transactions, and lead to their wider adoption.
 
 \subsection{New Curve: BLS12-381}
 
@@ -170,7 +245,7 @@ The old curve BN254 saw its security level reduced after a new algorithm was dis
 
 \subsection{New Commitment Scheme: Pedersen Commitments and JubJub}
 
-zCash zk-SNARK circuit needs to compute and verify commitments to notes. SHA256 compression function was used as the commitment scheme. Unfortunately, this also bloated the circuit quite a bit. Moving to BLS12-381, whose group order is $r \approx 2^{255}$ was used to introduce a new commitment scheme: Pedersen commitments over a custom Edwards curve Ed255-JubJub \cite{zcashjubjub}. The field underlaying JubJub can fit in the scalar field of BLS12-381 and be calculated in the circuit quite efficiently. This change alone reduced shielded transaction generation time by 75\% \cite{zcashreducing}.
+Zcash zk-SNARK circuit needs to compute and verify commitments to notes. SHA256 compression function was used as the commitment scheme. Unfortunately, this also bloated the circuit quite a bit. Moving to BLS12-381, whose group order is $r \approx 2^{255}$ was used to introduce a new commitment scheme: Pedersen commitments over a custom Edwards curve Ed255-JubJub \cite{zcashjubjub}. The field underlaying JubJub can fit in the scalar field of BLS12-381 and be calculated in the circuit quite efficiently. This change alone reduced shielded transaction generation time by 75\% \cite{zcashreducing}.
 
 \subsection{New Proving System}
 \label{grothexpl}
@@ -190,5 +265,5 @@ $$ e(\pi_A, \pi_B) \stackrel{?}{=} e(\alpha G_1, \beta G_2) \oplus e(\pi_C, \del
 \noindent Groth's zk-SNARK has been simplified here and doesn't include inputs to the circuit. Constants $\alpha, \beta, \delta, r, s, t$ are random secrets generated during the generation of CRS. Polynomials A(x), B(x), C(x), H(x), and T(x) are defined in the same way as in Pinocchio \cite{parno2013pinocchio} protocol.
 
 \subsection{Rust Implementation}
-
-Rust \cite{rustlang} was imagined as a memory-safe and thread-safe low-level programming language. Switching to a new curve required a rewrite of the cryptographic code. This was done in Rust to improve the security of zCash \cite{zcashbellman}. Furthermore, a new trusted setup was required to define the CRS for Groth's proving system. The program for the ceremony was also written in Rust and used secure multiparty computation to guarantee honesty. 87 people contributed in the first (circuit-agnostic) phase, and over 90 took part in the second phase \cite{zcashparamgen}.
+\label{section:rust}
+Rust \cite{rustlang} was imagined as a memory-safe and thread-safe low-level programming language. Switching to a new curve required a rewrite of the cryptographic code. This was done in Rust to improve the security of Zcash \cite{zcashbellman}. Furthermore, a new trusted setup was required to define the CRS for Groth's proving system. The program for the ceremony was also written in Rust and used secure multiparty computation to guarantee honesty. 87 people contributed in the first (circuit-agnostic) phase, and over 90 took part in the second phase \cite{zcashparamgen}.

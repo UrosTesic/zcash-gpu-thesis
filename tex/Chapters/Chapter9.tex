@@ -8,8 +8,8 @@
 %	SECTION 1
 %----------------------------------------------------------------------------------------
 
-In this thesis, we have given an overview of zk-SNARKs used in zCash. Afterward, we described the OpenCL architecture and problems we encountered with different vendors' implementation of it, before moving on to algorithms for multiexponentiation of BLS-381 points that we implemented in OpenCL. Finally, we reported the results of tests performed and showed possibilities for further research.\\
+In this thesis, we have given an overview of zk-SNARKs used in Zcash. Afterward, we described the OpenCL architecture and problems we encountered with different vendors' implementation of it, before moving on to algorithms for multiexponentiation of BLS-381 points that we implemented in OpenCL. Finally, we reported the results of tests performed and showed possibilities for further research.\\
 \\
-In our tests, we have found out that 64-bit ARM processors offer performance comparable to Intel's i7 processors for zCash proof generation. We have also noted that due to the lack of cooling on phones, the performance tends to oscillate.\\
+In our tests, we have found out that 64-bit ARM processors offer performance comparable to Intel's i7 processors for Zcash proof generation. We have also noted that due to the lack of cooling on phones, the performance tends to oscillate.\\
 \\
 Ultimately, we have shown that our implementation of BLS-381 G1 multiexponentiation algorithm in OpenCL is slower on all tested vendors' GPUs than the baseline CPU implementation. We have attributed this to high memory traffic caused by GPU's limited memory resources, small caches, large sizes of generated code caused by short processor word length, as well as quirks in the register and memory allocation of OpenCL compilers.
