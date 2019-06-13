@@ -7,7 +7,7 @@
 %----------------------------------------------------------------------------------------
 %	SECTION 1
 %----------------------------------------------------------------------------------------
-In this chapter we provide an overview of how Zcash data is saved and how this guarantees anonymity to its users. Next, we explain the origin of zero-knowledge proofs in the paper by Goldwasser et al \cite{goldwasser1985knowledge}. Afterward, we go through the steps of a zero-knowledge proof used in Zcash -- zk-SNARKs. Finally, we discuss the changes to Zcash in the latest update (Sapling).
+In this chapter we provide an overview of Zcash transactions and how they provide anonymity to its users. Next, we explain the origin of zero-knowledge proofs in the paper by Goldwasser et al \cite{goldwasser1985knowledge}. Afterward, we go through the steps of a zero-knowledge proof used in Zcash -- zk-SNARKs. Finally, we discuss the changes to Zcash in the latest update (Sapling).
 \section{Zcash}
 
 Cryptocurrencies have appeared recently and have been marketed as an alternative to cash and electronic payments. The best example is the Bitcoin bubble which made people gain millions overnight, and lose them soon after. However, Bitcoin is of limited use today. It cannot be used as a general currency due to the low throughput and long waiting times for the transaction to be added to the block. Its status as an anonymous currency is also disputed, resulting in 2 different cryptocurrencies being developed to fill that void - Monero (XMR) \cite{monero} and Zcash (ZEC) \cite{zcashmain}.\\
@@ -48,7 +48,7 @@ Another important property that proof may have is \textbf{zero-knowledge}. While
 \\
 Unfortunately, zero-knowledge proofs described are interactive. They cannot be used in blockchain because every verification of the blocks would require all parties to be online and exchange messages with the verifier. Blum, Feldman and Micali \cite{blum1988non} introduced \textbf{N}on-\textbf{I}nteractive \textbf{Z}ero-\textbf{K}nowledge proofs (NIZK -- pronounced \textit{nee-zeek}). These proofs require a preparation step -- the establishment of a common reference string (CRS). This is performed once and CRS is later used for proof generation and verification.\\
 \\
-Some NIZKs, such as zk-STARKs \cite{ben2018scalable}, don't require the establishment of CRS. In such constructions a pre-agreed hash function (\textit{random-oracle}) plays the role of a CRS. This makes zk-STARKs harder to backdoor. However the large proof size prevents us from using them in a blockchain setting.
+Some NIZKs, such as zk-STARKs \cite{ben2018scalable}, don't require the establishment of CRS. In such constructions a pre-agreed hash function (\textit{random-oracle}) plays the role of a CRS. This makes zk-STARKs harder to backdoor. However the large proof size prevents them from being used in a blockchain setting.
 
 \section{zk-SNARKs}
 
@@ -58,7 +58,7 @@ Most of the material in this section is based on a series of articles by Vitali 
 
 \subsection{Arithmetic Circuit}
 
-The calculation we want to perform starts as a program. To generate a proof for it, we need to convert it into an arithmetic circuit over the field $\mathbb{F}$. The gates in the circuit consist of two field operations and their inverses (eg. addition, multiplication, subtraction, and division). Different variables in the program and intermediate results are represented by different wires in the circuit. Conditional execution can be simulated by performing all branches in parallel, and selecting one of them. Finite loops are unrolled and function calls are inlined. Example arithmetic circuit can be seen in Figure \ref{fig:circuit}.
+The calculation we want to perform starts as a program. To generate a proof for it, we need to convert it into an arithmetic circuit over the field $\mathbb{F}$. The gates in the circuit consist of two field operations and their inverses (eg. addition, multiplication, subtraction, and division). Different variables in the program and intermediate results are represented by different wires in the circuit. Conditional execution can be simulated by performing all branches in parallel, and selecting one of them. Finite loops are unrolled and function calls are inlined. An example arithmetic circuit  depicting $(a+b)*(c/d)$ can be seen in Figure \ref{fig:circuit}.
 
 \begin{figure}[h]
     \centering
@@ -116,7 +116,7 @@ If we want to recover the $2^{nd}$ gate's value assigned to $4^{th}$ wire in vec
 
 \begin{equation}
     \label{eq:polydef}
-A(x) = \sum_{j = 1}^{w} S^j \cdot A_j(x)
+A(x) = \sum_{j = 1}^{w} \textbf{S}^j \cdot A_j(x)
 \end{equation}
 
 \noindent Considering that polynomials A(x), B(x) and C(x) are sums of interpolated polynomials multiplied by the corresponding element in \textbf{S}, we can evaluate them at different indices and derive Theorem \ref{theorem:zero}. The total number of gates in a circuit is denoted by \textit{g}.
@@ -241,16 +241,16 @@ Zcash is undergoing continuous development. The most substantial update to date 
 
 \subsection{New Curve: BLS12-381}
 
-The old curve BN254 saw its security level reduced after a new algorithm was discovered \cite{zcashbls12381}. Increasing the security parameters for this curve would reduce the performance of FFT (for polynomial division) and multiexponentiation steps of proof generation. A new curve was selected - BLS12-381. The embedding degrees of this curve is 12. Other parameters of this curve are its group order $r \approx 2^{255}$ and the base field characteristic $q \approx 2^{381}$.
+The old curve BN254 saw its conservative security level estimate reduced to 110 bits after a new variant of the number sieve algorithm was presented \cite{zcashbls12381, cryptoeprint:2015:1027}. Increasing the security parameters for this curve would reduce the performance of FFT (for polynomial division) and multiexponentiation steps of proof generation. A new curve was selected - BLS12-381. The embedding degrees of this curve is 12. Other parameters of this curve are its group order $r \approx 2^{255}$ and the base field characteristic $q \approx 2^{381}$.
 
 \subsection{New Commitment Scheme: Pedersen Commitments and JubJub}
 
-Zcash zk-SNARK circuit needs to compute and verify commitments to notes. SHA256 compression function was used as the commitment scheme. Unfortunately, this also bloated the circuit quite a bit. Moving to BLS12-381, whose group order is $r \approx 2^{255}$ was used to introduce a new commitment scheme: Pedersen commitments over a custom Edwards curve Ed255-JubJub \cite{zcashjubjub}. The field underlaying JubJub can fit in the scalar field of BLS12-381 and be calculated in the circuit quite efficiently. This change alone reduced shielded transaction generation time by 75\% \cite{zcashreducing}.
+Zcash zk-SNARK circuit needs to compute and verify commitments to notes. SHA256 compression function was used as the commitment scheme. Unfortunately, this also bloated the circuit quite a bit. The move to BLS12-381 did not only increase the security level to 128 bits, but also introduce a highly efficient commitment scheme: Pedersen commitments over a custom Edwards curve Ed255-JubJub \cite{zcashjubjub}. The field underlaying JubJub can fit in the scalar field of BLS12-381 and be calculated in the circuit quite efficiently. This change alone reduced shielded transaction generation time by 75\% \cite{zcashreducing}.
 
 \subsection{New Proving System}
 \label{grothexpl}
 
-While Pinocchio is secure, its biggest problem is the proof size. Instead of using 7 $\mathbb{G}_1$ elements, and one $\mathbb{G}_2$ element, Jens Groth \cite{groth2016size} improved upon the previous work to use only 2 $\mathbb{G}_1$ elements and a $\mathbb{G}_2$ element. He also proved that at least one element needs to be in each group for linear circuit checks to be secure.\\
+While Pinocchio is fullfulls all requirements for Zcash, its biggest problem is the proof size. Instead of using 7 $\mathbb{G}_1$ elements, and one $\mathbb{G}_2$ element, Jens Groth \cite{groth2016size} improved upon the previous work to use only 2 $\mathbb{G}_1$ elements and a $\mathbb{G}_2$ element. He also proved that at least one element needs to be in each group for linear circuit checks to be secure.\\
 \\
 The new system has the prover provide:
 

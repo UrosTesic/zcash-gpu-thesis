@@ -4,7 +4,7 @@
 
 \label{Chapter7} % Change X to a consecutive number; for referencing this chapter elsewhere, use \ref{ChapterX}
 
-In this chapter analyze the results of every test. We discuss the effects of processor word width on performance, as well as the performance on mobile devices. Finally, we talk about the different factors which affected the execution time of multiexponentiation on GPUs.
+In this chapter, we analyze the results of performance measurements. We discuss the effects of processor word width on performance, as well as the performance on mobile devices. Finally, we talk about the different factors which affected the execution time of multiexponentiation on GPUs.
 %----------------------------------------------------------------------------------------
 %	SECTION 1
 %----------------------------------------------------------------------------------------
@@ -12,7 +12,7 @@ In this chapter analyze the results of every test. We discuss the effects of pro
 \section{Whole Proof Generation}
 \label{wholeproof}
 
-We were quite surprised to find out that performance on mobile ARM processors is almost as good as x86-64 i7 performance. Performance on the i7 processor is a bit better, however, ARM's 8 cores and higher price tag make the performance gap really narrow.\\
+We were quite surprised to discover that performance on mobile ARM processors is almost as good as as good as a full blown desktop CPUs from Intel. Performance on the i7 processor is a bit better, however, ARM's 8 cores make the performance gap really narrow.\\
 \\
 Another interesting insight is the importance of the processor word width. 32-bit code was slower than its 64-bit counterpart on both architectures. This performance penalty is incurred because of arithmetic operations. zk-SNARKs rely on 381-bit finite prime field arithmetic. Emulating these operations requires fewer 64-bit than 32-bit operations. For 32-bit code every 64-bit addition needs to be decomposed into 2 32-bit additions. Every multiplication requires 3 32-bit multiplications (4 if we want to keep the high bits). On top of this, there are several ADD instructions needed to compute the final product (Figure \ref{fig:mulcomp}).\\
 \begin{figure}[h]
@@ -45,7 +45,7 @@ ret
         \label{fig:mulcomp}
 \end{figure}
 \\
-\noindent The stress test showed that phones are prone to overheat, and throttle the computation of proofs if under heavy load. This happens after several proofs have been computed, even if nothing else is running on the device. Laptops don't show this behavior due to the fans disperse the heat. Note that the test was performed on a laptop with GPU turned off.
+\noindent The stress test showed that phones are prone to overheat, and throttle the computation of proofs if under heavy load. This happens after several proofs have been computed, even if nothing else is running on the device. Laptops don't show this behavior due to the fans that disperse the heat. Note that the test was performed on a laptop with GPU turned off.
 
 \section{FFT and Multiexp}
 
@@ -53,7 +53,7 @@ The results of this test showed no surprising facts. Multiexponentiation and FFT
 
 \section{131k Test}
 
-Integrated GPUs performed poorly when compared to CPUs and discrete GPUs. This rules out the use of mobile GPUs for accelerating zk-SNARKs. If we take a look at frequencies and core counts of discrete and integrated GPUs, it is clear that Intel and Mali GPUs will be at least an order of magnitude slower than NVIDIA and AMD cards. The actual surprise is that not even discrete GPUs can beat CPUs running Pippenger's algorithm. In this section, we explain multiple contributing factors.\\
+Integrated GPUs performed poorly when compared to CPUs and discrete GPUs. Considering that mobile devices have only integrated GPUs, this eliminates GPU accelerated zk-SNARK generation on them. If we take a look at frequencies and core counts of discrete and integrated GPUs, it is clear that Intel and Mali GPUs will be at least an order of magnitude slower than NVIDIA and AMD cards. The actual surprise is that not even discrete GPUs can beat CPUs running Pippenger's algorithm. In this section, we explain multiple contributing factors.\\
 \\
 \subsection{Processor Word Length -- 32 vs 64}
 
@@ -85,4 +85,4 @@ OpenCL uses global memory to store constants. Usually, they can be cached, so th
 
 It is possible to attain a speed-up of 25-30\% by running CPU and GPU together and distributing work between them. This scheme would involve putting (a smaller) part of the exponent on GPU, exponentiating the rest on CPU, and combining the results. Unfortunately, due to different ratio's of CPU and GPU power, we would need to maintain either a table for most common combinations or run a test first to determine the optimal ratio.\\
 \\
-However, the gains are minimal even with more powerful GPUs. Graphic cards draw a lot of power, heat up the machine and increase fan noise. This scheme would require us to maintain two versions of the same code and would be economical only if we already own a strong GPU. If we want to buy a machine specifically for Zcash, it would make more sense to buy a processor with more cores.
+However, the gains are minimal even with more powerful GPUs. Graphic cards draw a lot of power, heat up the machine and increase fan noise. This scheme would require us to maintain two versions of the same code and would be economical only if we already own a strong GPU. If someone wants to buy a machine specifically for Zcash, it would make more sense to buy a processor with more cores.

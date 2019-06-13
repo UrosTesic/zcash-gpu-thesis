@@ -11,7 +11,7 @@ In this chapter we first describe the hardware that was used for benchmarking. A
 \section{Test Preparation}
 
 \subsection{Hardware}
-The CPU used for testing desktop performance is an \textbf{Intel i7 7700HQ} @ 2.80 GHz with 4 cores (8 virtual cores) \cite{intel7700hq}. It is a 7th generation 64-bit Intel processor with SSE, SSE2, SSE3, SSSE3, SSE4\_1, SSE4\_2, AVX and AVX2 extensions. Both 32-bit and 64-bit code was tested on this CPU, compiled using Rust compiler with corresponding targets. The operating system running is Ubuntu 18.10.\\
+The CPU used for testing desktop performance is an \textbf{Intel i7 7700HQ} @ 2.80 GHz with 4 cores (8 virtual cores) \cite{intel7700hq}. Both 32-bit and 64-bit code was tested on this CPU, compiled using Rust compiler with corresponding targets. The operating system running is Ubuntu 18.10.\\
 \\
 For testing on mobile devices, we used \textbf{Samsung S9's Exynos} processor. It has 8 cores: 4 cores run at 2.9 GHz, and the other four at 1.9 GHz \cite{exynos9810}. Both 32-bit and 64-bit code was tested on this processor, using corresponding targets for the Rust compiler, and Android NDK (\texttt{armv7a-linux-androideabi16} for 32-bit code, and \texttt{aarch64-linux-android21} for 64-bit code).\\
 \\
