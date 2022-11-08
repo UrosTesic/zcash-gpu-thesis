@@ -6,6 +6,8 @@ Supervisor: Prof. Dr. Srđan Čapkun\
 Degree: MSc in Computer Science\
 Institution: ETH Zürich
 
+Thesis: [PDF](https://github.com/UrosTesic/zcash-gpu-thesis/blob/299015c063bc2af757e52127605000dd743ef602/tex/main.pdf)
+
 ## Abstract
 
 Cryptocurrencies promise a new age of money and payment systems. By distributing trust they prevent any party from controlling the flow of resources. However, this comes at a price -- most cryptocurrencies rely on a public ledger. This puts user's privacy at risk because anyone can monitor and track transactions.
